@@ -18,6 +18,19 @@ def _integration_enabled() -> bool:
 
 
 def _connection() -> Connection:
+    return _connection_with_options()
+
+
+def _connection_with_options(**transport_options) -> Connection:
+    options = {
+        "environment": os.environ.get("SOLACE_ENVIRONMENT", "DEV1"),
+        "namespace": os.environ.get("SOLACE_NAMESPACE", "kombu-solace-it"),
+        "publish_confirm_mode": "sync",
+        "publish_ack_timeout_ms": 10000,
+        "publisher_buffer_capacity": 100,
+        "receive_timeout": 1.0,
+    }
+    options.update(transport_options)
     return Connection(
         transport=Transport,
         hostname=os.environ.get("SOLACE_HOST", "localhost"),
@@ -25,14 +38,7 @@ def _connection() -> Connection:
         userid=os.environ.get("SOLACE_USERNAME", "sampleUser"),
         password=os.environ.get("SOLACE_PASSWORD", "samplePassword"),
         virtual_host=os.environ.get("SOLACE_VPN", "default"),
-        transport_options={
-            "environment": os.environ.get("SOLACE_ENVIRONMENT", "DEV1"),
-            "namespace": os.environ.get("SOLACE_NAMESPACE", "kombu-solace-it"),
-            "publish_confirm_mode": "sync",
-            "publish_ack_timeout_ms": 10000,
-            "publisher_buffer_capacity": 100,
-            "receive_timeout": 1.0,
-        },
+        transport_options=options,
     )
 
 
@@ -150,5 +156,30 @@ def test_real_broker_reject_without_requeue_does_not_redeliver_message():
     assert message is not None
     message.reject(requeue=False)
 
+    assert channel.basic_get(queue_name) is None
+    connection.close()
+
+
+@pytest.mark.skipif(not _integration_enabled(), reason="Solace integration not enabled")
+def test_real_broker_browser_size_and_receiver_purge_fallbacks():
+    connection = _connection_with_options(
+        size_strategy="browser",
+        purge_strategy="receiver",
+        browser_timeout_ms=100,
+        purge_receive_timeout_ms=100,
+    )
+    channel = connection.channel()
+    suffix = uuid.uuid4().hex
+    queue_name = f"it-fallback-{suffix}"
+    exchange = Exchange(f"it-fallback-tasks-{suffix}", type="direct")
+    queue = Queue(queue_name, exchange=exchange, routing_key=queue_name)
+
+    queue(channel).declare()
+    producer = Producer(channel, exchange=exchange)
+    for i in range(3):
+        producer.publish({"i": i}, routing_key=queue_name)
+
+    assert channel._size(queue_name) == 3
+    assert channel._purge(queue_name) == 3
     assert channel.basic_get(queue_name) is None
     connection.close()

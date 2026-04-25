@@ -200,6 +200,8 @@ Observed on 2026-04-25:
   redelivers the message.
 - Local broker tests also confirmed `reject(requeue=False)` maps to a rejected
   settlement path that does not redeliver on the default queue configuration.
+- Browser-based size fallback and receiver-drain purge fallback passed against
+  the local broker without SEMP.
 
 ## Implementation Naming Notes
 

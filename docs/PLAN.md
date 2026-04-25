@@ -67,7 +67,7 @@
 - [x] Test NACK `REJECTED` discard or DMQ behavior when configured.
 - [ ] Test publish receipt failure surfaces to Kombu.
 - [x] Test SEMP size and purge against local broker.
-- [ ] Test queue browser purge when enabled.
+- [x] Test queue browser purge when enabled.
 - [ ] Test reconnect or clean failure behavior.
 
 ## Phase 4: Performance and Soak
