@@ -62,8 +62,8 @@
 - [x] Add opt-in integration tests gated by environment variables.
 - [x] Document required Solace broker settings and permissions.
 - [x] Test connect, declare queue, internal subscription, publish, consume, ack.
-- [ ] Test unacked redelivery after receiver close/reconnect.
-- [ ] Test NACK `FAILED` redelivery when broker supports settlement outcomes.
+- [x] Test unacked redelivery after receiver close/reconnect.
+- [x] Test NACK `FAILED` redelivery when broker supports settlement outcomes.
 - [ ] Test NACK `REJECTED` discard or DMQ behavior when configured.
 - [ ] Test publish receipt failure surfaces to Kombu.
 - [x] Test SEMP size and purge against local broker.

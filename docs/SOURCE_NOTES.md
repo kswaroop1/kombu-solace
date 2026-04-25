@@ -194,6 +194,10 @@ Observed on 2026-04-25:
   - `SOLACE_USERNAME=sampleUser`
   - `SOLACE_PASSWORD=samplePassword`
   - `SOLACE_SEMP_URL=http://localhost:8080`
+- Broker reliability tests confirmed that an unacked persistent message is
+  redelivered after channel/receiver close and that Kombu
+  `reject(requeue=True)` maps to a Solace failed settlement path that
+  redelivers the message.
 
 ## Implementation Naming Notes
 

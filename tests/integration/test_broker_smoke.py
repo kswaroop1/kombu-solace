@@ -81,3 +81,54 @@ def test_real_broker_semp_size_and_purge():
     assert management.queue_size(queue_name) == 1
     assert management.purge_queue(queue_name) == 1
     assert management.queue_size(queue_name) == 0
+
+
+@pytest.mark.skipif(not _integration_enabled(), reason="Solace integration not enabled")
+def test_real_broker_redelivers_unacked_message_after_channel_close():
+    suffix = uuid.uuid4().hex
+    queue_name = f"it-redeliver-{suffix}"
+    exchange = Exchange(f"it-redeliver-tasks-{suffix}", type="direct")
+    queue = Queue(queue_name, exchange=exchange, routing_key=queue_name)
+
+    connection = _connection()
+    channel = connection.channel()
+    queue(channel).declare()
+    Producer(channel, exchange=exchange).publish({"redeliver": True}, routing_key=queue_name)
+    message = channel.basic_get(queue_name)
+
+    assert message is not None
+    assert message.payload == {"redeliver": True}
+    connection.close()
+
+    connection = _connection()
+    channel = connection.channel()
+    queue(channel).declare()
+    redelivered = channel.basic_get(queue_name)
+
+    assert redelivered is not None
+    assert redelivered.payload == {"redeliver": True}
+    redelivered.ack()
+    connection.close()
+
+
+@pytest.mark.skipif(not _integration_enabled(), reason="Solace integration not enabled")
+def test_real_broker_reject_requeue_redelivers_message():
+    connection = _connection()
+    channel = connection.channel()
+    suffix = uuid.uuid4().hex
+    queue_name = f"it-nack-{suffix}"
+    exchange = Exchange(f"it-nack-tasks-{suffix}", type="direct")
+    queue = Queue(queue_name, exchange=exchange, routing_key=queue_name)
+
+    queue(channel).declare()
+    Producer(channel, exchange=exchange).publish({"nack": True}, routing_key=queue_name)
+    message = channel.basic_get(queue_name)
+
+    assert message is not None
+    message.reject(requeue=True)
+
+    redelivered = channel.basic_get(queue_name)
+    assert redelivered is not None
+    assert redelivered.payload == {"nack": True}
+    redelivered.ack()
+    connection.close()
