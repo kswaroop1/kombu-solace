@@ -7,6 +7,8 @@ from solace.messaging.publisher.persistent_message_publisher import (
 )
 
 from kombu_solace.adapter import _PublishReceiptListener, build_service_properties
+from kombu_solace.adapter import PubSubPlusSolaceAdapter
+from kombu_solace.errors import PublishFailed
 
 
 def test_build_service_properties_uses_solace_property_keys():
@@ -39,3 +41,15 @@ def test_publish_receipt_listener_matches_solace_required_type():
     listener = _PublishReceiptListener(failures=[])
 
     assert isinstance(listener, MessagePublishReceiptListener)
+
+
+def test_pending_publish_receipt_failure_surfaces_on_flush():
+    adapter = PubSubPlusSolaceAdapter()
+    adapter._publish_failures.append(RuntimeError("broker rejected publish"))
+
+    try:
+        adapter.flush_publisher(timeout_ms=100)
+    except PublishFailed as exc:
+        assert "broker rejected publish" in str(exc)
+    else:
+        raise AssertionError("expected PublishFailed")

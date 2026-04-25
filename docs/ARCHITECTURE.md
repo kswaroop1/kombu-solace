@@ -306,9 +306,11 @@ Required behavior:
   or clearly raise on reject according to the chosen option.
 - Do not settle the same inbound message more than once.
 
-For `no_ack=True`, the transport should still use a client-ack receiver and ack
-immediately after converting the message but before returning it to Kombu. This
-matches Kombu's no-ack contract while keeping one receiver configuration path.
+For `no_ack=True`, the transport still uses a client-ack receiver and ack
+immediately after receiving the message. For direct `basic_get`, this happens
+before returning the `Message` to the caller. For consumers, this happens before
+the Kombu callback receives the message. This matches Kombu's no-ack contract
+while keeping one receiver configuration path.
 
 `basic_recover(requeue=True)` should not republish messages. It can terminate
 and recreate the receiver or settle failed messages if that behavior is proven

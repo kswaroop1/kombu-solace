@@ -180,6 +180,7 @@ class PubSubPlusSolaceAdapter:
         for receiver in list(self.receivers.values()):
             receiver.terminate()
         self.receivers.clear()
+        self.subscriptions.clear()
         if self.publisher is not None and not self.publisher.is_terminated:
             self.publisher.terminate()
         if self.service is not None and self.service.is_connected:
@@ -255,6 +256,7 @@ class PubSubPlusSolaceAdapter:
 
     def close_receiver(self, queue_name: str) -> None:
         receiver = self.receivers.pop(queue_name, None)
+        self.subscriptions.pop(queue_name, None)
         if receiver is not None and not receiver.is_terminated:
             receiver.terminate()
 
@@ -383,6 +385,7 @@ class InMemorySolaceAdapter:
 
     def close(self) -> None:
         self.closed = True
+        self.subscriptions.clear()
 
     def ensure_queue(self, queue_name: str, *, durable: bool = True) -> None:
         if not self.create_missing_queues and queue_name not in self.queues:
@@ -429,6 +432,7 @@ class InMemorySolaceAdapter:
 
     def close_receiver(self, queue_name: str) -> None:
         self.closed_receivers.append(queue_name)
+        self.subscriptions.pop(queue_name, None)
 
     def flush_publisher(self, timeout_ms: int | None = None) -> None:
         self.flushed = True

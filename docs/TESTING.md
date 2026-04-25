@@ -110,7 +110,8 @@ These tests must prove:
 - settlement failure leaves state consistent and raises a mapped error
 - close with unacked messages does not republish and does not duplicate
 - `do_restore` is disabled for the channel
-- `no_ack=True` immediately acknowledges after message conversion
+- `no_ack=True` on `basic_get` and `basic_consume` immediately acknowledges the
+  Solace delivery reference without adding the message to Kombu QoS state
 - double ack/reject is rejected by Kombu message state
 - NACK unavailable at receiver start fails fast or is disabled according to
   transport options
@@ -127,6 +128,16 @@ Publish tests must cover:
 - message-too-large errors are mapped and do not corrupt state
 - back-pressure `wait`, `reject`, and explicit `elastic` policies are applied
 - producer publish after connection close fails clearly
+
+### Unit: Error Mapping
+
+Error mapping tests must cover:
+
+- connection establishment failures map to `SolaceConnectionError`
+- publish and receive failures map to `SolaceConnectionError`
+- queue declaration failures map to `SolaceChannelError`
+- mapped errors are exposed through the transport `connection_errors` and
+  `channel_errors` tuples so Kombu/Celery retry code can classify them
 
 ### Unit: Serialization
 

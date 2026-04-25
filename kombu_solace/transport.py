@@ -9,7 +9,15 @@ from kombu.transport import virtual
 
 from .adapter import PubSubPlusSolaceAdapter
 from .config import SolaceTransportOptions
-from .errors import ManagementUnavailable, QueueUnavailable, SettlementFailed
+from .errors import (
+    ManagementUnavailable,
+    QueueUnavailable,
+    SolaceChannelError,
+    SolaceConnectionError,
+    SettlementFailed,
+    map_channel_error,
+    map_connection_error,
+)
 from .management import SempV2ManagementAdapter
 from .naming import physical_queue_name, queue_ingress_topic
 from .serialization import deserialize_envelope, serialize_envelope
@@ -44,6 +52,7 @@ class Channel(virtual.Channel):
         super().__init__(*args, **kwargs)
         self._delivery_refs: dict[str, object] = {}
         self._known_queues: set[str] = set()
+        self._no_ack_queues: set[str] = set()
 
     @property
     def adapter(self):
@@ -73,8 +82,13 @@ class Channel(virtual.Channel):
 
     def _new_queue(self, queue, **kwargs):
         physical_queue = self._physical_queue(queue)
-        self.adapter.ensure_queue(physical_queue, durable=kwargs.get("durable", True))
-        self.adapter.ensure_queue_subscription(physical_queue, self._queue_topic(queue))
+        try:
+            self.adapter.ensure_queue(physical_queue, durable=kwargs.get("durable", True))
+            self.adapter.ensure_queue_subscription(physical_queue, self._queue_topic(queue))
+        except QueueUnavailable:
+            raise
+        except Exception as exc:
+            raise map_channel_error(exc, "queue declaration") from exc
         self._known_queues.add(queue)
 
     def _has_queue(self, queue, **kwargs):
@@ -83,18 +97,28 @@ class Channel(virtual.Channel):
     def _put(self, queue, message, **kwargs):
         self._new_queue(queue)
         payload = serialize_envelope(message)
-        self.adapter.publish(
-            self._queue_topic(queue),
-            payload,
-            headers=message.get("headers"),
-            properties=message.get("properties"),
-            confirm_policy=self.publish_confirm_mode,
-        )
+        try:
+            self.adapter.publish(
+                self._queue_topic(queue),
+                payload,
+                headers=message.get("headers"),
+                properties=message.get("properties"),
+                confirm_policy=self.publish_confirm_mode,
+            )
+        except Exception as exc:
+            raise map_connection_error(exc, "publish") from exc
 
     def _get(self, queue, timeout=None):
         self._new_queue(queue)
         timeout_ms = self._timeout_ms(timeout)
-        inbound = self.adapter.receive(self._physical_queue(queue), timeout_ms=timeout_ms)
+        try:
+            inbound = self.adapter.receive(
+                self._physical_queue(queue), timeout_ms=timeout_ms
+            )
+        except Empty:
+            raise
+        except Exception as exc:
+            raise map_connection_error(exc, "receive") from exc
         message = deserialize_envelope(inbound.payload)
         delivery_tag = message.get("properties", {}).get("delivery_tag")
         if delivery_tag is not None:
@@ -135,6 +159,27 @@ class Channel(virtual.Channel):
         self.adapter.close_receiver(self._physical_queue(queue))
         self._known_queues.discard(queue)
 
+    def basic_get(self, queue, no_ack=False, **kwargs):
+        message = super().basic_get(queue, no_ack=no_ack, **kwargs)
+        if no_ack and message is not None:
+            self._ack_raw_delivery(message.delivery_tag)
+        return message
+
+    def basic_consume(self, queue, no_ack, callback, consumer_tag, **kwargs):
+        if no_ack:
+            self._no_ack_queues.add(queue)
+        else:
+            self._no_ack_queues.discard(queue)
+        return super().basic_consume(queue, no_ack, callback, consumer_tag, **kwargs)
+
+    def _get_and_deliver(self, queue, callback):
+        message = self._get(queue)
+        if queue in self._no_ack_queues:
+            delivery_tag = message.get("properties", {}).get("delivery_tag")
+            if delivery_tag is not None:
+                self._ack_raw_delivery(delivery_tag)
+        callback(message, queue)
+
     def basic_ack(self, delivery_tag, multiple=False):
         try:
             delivery_ref = self._delivery_refs.pop(delivery_tag)
@@ -148,6 +193,17 @@ class Channel(virtual.Channel):
         ret = super().basic_ack(delivery_tag, multiple=multiple)
         self.qos._flush()
         return ret
+
+    def _ack_raw_delivery(self, delivery_tag):
+        try:
+            delivery_ref = self._delivery_refs.pop(delivery_tag)
+        except KeyError:
+            return
+        try:
+            self.adapter.ack(delivery_ref)
+        except Exception as exc:
+            self._delivery_refs[delivery_tag] = delivery_ref
+            raise SettlementFailed(str(exc)) from exc
 
     def basic_reject(self, delivery_tag, requeue=False):
         try:
@@ -196,8 +252,12 @@ class Transport(virtual.Transport):
         heartbeats=False,
     )
 
-    connection_errors = virtual.Transport.connection_errors + (SettlementFailed,)
-    channel_errors = virtual.Transport.channel_errors + (QueueUnavailable, ChannelError)
+    connection_errors = virtual.Transport.connection_errors + (SolaceConnectionError,)
+    channel_errors = virtual.Transport.channel_errors + (
+        SolaceChannelError,
+        QueueUnavailable,
+        ChannelError,
+    )
 
     def __init__(self, client, **kwargs):
         super().__init__(client, **kwargs)
@@ -206,7 +266,10 @@ class Transport(virtual.Transport):
         self.management = self._make_management_adapter()
 
     def establish_connection(self):
-        self.adapter.connect(self._connection_settings())
+        try:
+            self.adapter.connect(self._connection_settings())
+        except Exception as exc:
+            raise map_connection_error(exc, "connect") from exc
         return super().establish_connection()
 
     def close_connection(self, connection):

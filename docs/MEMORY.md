@@ -22,6 +22,12 @@
   physical queue naming such as `corp.orders.DEV1.celery`.
 - `topic_prefix` plus `application` can put all internal queue ingress topics
   under a visible root such as `corp/nonprod/orders/DEV1/_kombu/...`.
+- Receiver close must clear the adapter's subscription cache. Otherwise a
+  redeclared queue after channel close/reconnect can skip re-adding the internal
+  queue ingress subscription.
+- `no_ack=True` still uses a client-ack Solace receiver; the transport acks the
+  Solace delivery reference immediately and does not add the message to Kombu
+  QoS state.
 - Keep Solace imports behind an adapter boundary.
 - Serialize the full Kombu message envelope initially for compatibility.
 - Disable Kombu virtual unacked restore because Solace broker redelivery is the

@@ -20,14 +20,14 @@
 - [x] Add behavior tests for internal topic naming, environment root, and limits.
 - [x] Add behavior tests for physical queue naming with prefix/application/env.
 - [x] Add behavior tests for topic root prefixing with application/env isolation.
-- [ ] Add behavior tests for queue declaration lifecycle.
+- [x] Add behavior tests for queue declaration lifecycle.
 - [x] Add behavior tests proving queue bindings do not create user Solace
   subscriptions in default Kombu routing mode.
 - [x] Add behavior tests for direct exchange publishing.
 - [x] Add behavior tests for topic exchange publishing, including Kombu `#`
   semantics.
 - [x] Add conservative wildcard translation tests for future native routing.
-- [ ] Add behavior tests for anonymous exchange publishing.
+- [x] Add behavior tests for anonymous exchange publishing.
 - [x] Add behavior tests for `basic_get`.
 - [x] Add behavior tests for `basic_consume` and `drain_events`.
 - [x] Add behavior tests for `basic_ack`.
@@ -35,10 +35,11 @@
   `Outcome.FAILED`.
 - [x] Add behavior tests for `basic_reject(requeue=False)` mapping to
   `Outcome.REJECTED`.
-- [ ] Add behavior tests for `no_ack=True` immediate acknowledgement.
+- [x] Add behavior tests for `no_ack=True` immediate acknowledgement.
 - [x] Add behavior tests proving close with unacked messages does not republish.
-- [ ] Add behavior tests for publish receipt success, failure, and timeout.
-- [ ] Add behavior tests for Solace exceptions mapped to Kombu connection and
+- [ ] Add behavior tests for publish receipt success and timeout.
+- [x] Add behavior tests for publish receipt failure.
+- [x] Add behavior tests for Solace exceptions mapped to Kombu connection and
   channel errors.
 - [x] Add behavior tests for optional management adapter behavior.
 

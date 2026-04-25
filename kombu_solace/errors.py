@@ -29,3 +29,19 @@ class SettlementFailed(SolaceConnectionError):
 
 class ManagementUnavailable(SolaceChannelError):
     """Raised when optional management operations are unavailable."""
+
+
+def map_connection_error(exc: Exception, operation: str) -> SolaceConnectionError:
+    """Normalize a lower-level exception as a Kombu connection-level failure."""
+
+    if isinstance(exc, SolaceConnectionError):
+        return exc
+    return SolaceConnectionError(f"{operation} failed: {exc}")
+
+
+def map_channel_error(exc: Exception, operation: str) -> SolaceChannelError:
+    """Normalize a lower-level exception as a Kombu channel-level failure."""
+
+    if isinstance(exc, SolaceChannelError):
+        return exc
+    return SolaceChannelError(f"{operation} failed: {exc}")
