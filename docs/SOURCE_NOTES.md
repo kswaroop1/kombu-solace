@@ -198,6 +198,8 @@ Observed on 2026-04-25:
   redelivered after channel/receiver close and that Kombu
   `reject(requeue=True)` maps to a Solace failed settlement path that
   redelivers the message.
+- Local broker tests also confirmed `reject(requeue=False)` maps to a rejected
+  settlement path that does not redeliver on the default queue configuration.
 
 ## Implementation Naming Notes
 

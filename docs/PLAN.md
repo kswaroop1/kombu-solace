@@ -64,7 +64,7 @@
 - [x] Test connect, declare queue, internal subscription, publish, consume, ack.
 - [x] Test unacked redelivery after receiver close/reconnect.
 - [x] Test NACK `FAILED` redelivery when broker supports settlement outcomes.
-- [ ] Test NACK `REJECTED` discard or DMQ behavior when configured.
+- [x] Test NACK `REJECTED` discard or DMQ behavior when configured.
 - [ ] Test publish receipt failure surfaces to Kombu.
 - [x] Test SEMP size and purge against local broker.
 - [ ] Test queue browser purge when enabled.

@@ -132,3 +132,23 @@ def test_real_broker_reject_requeue_redelivers_message():
     assert redelivered.payload == {"nack": True}
     redelivered.ack()
     connection.close()
+
+
+@pytest.mark.skipif(not _integration_enabled(), reason="Solace integration not enabled")
+def test_real_broker_reject_without_requeue_does_not_redeliver_message():
+    connection = _connection()
+    channel = connection.channel()
+    suffix = uuid.uuid4().hex
+    queue_name = f"it-reject-{suffix}"
+    exchange = Exchange(f"it-reject-tasks-{suffix}", type="direct")
+    queue = Queue(queue_name, exchange=exchange, routing_key=queue_name)
+
+    queue(channel).declare()
+    Producer(channel, exchange=exchange).publish({"reject": True}, routing_key=queue_name)
+    message = channel.basic_get(queue_name)
+
+    assert message is not None
+    message.reject(requeue=False)
+
+    assert channel.basic_get(queue_name) is None
+    connection.close()
