@@ -49,7 +49,7 @@ Routing tests must lock down the v1 decision that Kombu owns routing:
 
 - direct exchange routes to exactly the bound queues
 - topic exchange uses Kombu AMQP topic semantics
-- AMQP `#` zero-or-more matching is preserved
+- Kombu topic `#` matching is preserved
 - queue binding does not create user exchange/routing-key Solace subscriptions
 - every declared queue has exactly one internal queue ingress subscription
 - publish to N matched queues performs N internal publishes
@@ -58,6 +58,9 @@ Routing tests must lock down the v1 decision that Kombu owns routing:
 
 These tests are the guardrail against mixing Kombu virtual routing and
 Solace-native routing accidentally.
+
+Wildcard helper tests must reject unsafe AMQP-to-Solace translations so a future
+native routing mode cannot silently change Kombu topic behavior.
 
 ### Unit: Queue Lifecycle
 
@@ -72,7 +75,11 @@ Queue tests must cover:
 - durable queue delete without management adapter does not claim broker
   deprovisioning
 - optional management adapter handles delete/size/purge when configured
-- queue browser purge is marked best effort when active consumers exist
+- SEMP-first size falls back to queue browser count when SEMP is unavailable
+- SEMP-first purge falls back to receive-and-ack draining when SEMP is
+  unavailable
+- queue browser and receiver fallback operations are marked best effort when
+  active consumers exist
 
 ### Unit: Adapter Mapping
 
@@ -142,6 +149,7 @@ Naming tests must cover:
 
 - internal topic generation for simple queue names
 - queue names containing `/`, `*`, `>`, spaces, punctuation, and unicode
+- different `environment` values isolate internal destination roots
 - very long queue names
 - collision-resistant fallback behavior
 - Solace topic length and level limits

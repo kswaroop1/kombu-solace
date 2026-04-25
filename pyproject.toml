@@ -7,7 +7,7 @@ name = "kombu-solace"
 version = "0.0.0"
 description = "Kombu transport for Solace PubSub+"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
   {name = "kombu-solace contributors"}

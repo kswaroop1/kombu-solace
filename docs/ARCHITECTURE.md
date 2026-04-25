@@ -35,6 +35,8 @@ baseline.
   queue.
 - Default publish mode: asynchronous persistent publish with bounded
   back-pressure and receipt tracking.
+- Destination root: `environment` then `namespace`, so one Solace VPN can host
+  multiple isolated non-production environments.
 - Strict publish mode: optional synchronous publish awaiting broker
   acknowledgement.
 - Unacked restore: disabled at the Kombu virtual layer; Solace broker redelivery
@@ -145,9 +147,10 @@ The first implementation uses Kombu's virtual exchange routing. That means:
 - `queue_bind` updates Kombu virtual state only. It must not create
   exchange/routing-key subscriptions on Solace queues in this mode.
 
-This avoids duplicate delivery and preserves AMQP topic semantics exactly,
-including AMQP `#` matching zero or more words in positions that Solace SMF
-wildcards cannot directly represent.
+This avoids duplicate delivery and preserves Kombu's topic exchange semantics
+exactly. Kombu's virtual topic exchange documents `#` as one or more words and
+implements matching through its own regex table; Solace-native wildcard routing
+must not replace that behavior until separately tested.
 
 The tradeoff is that publishing to N matched queues becomes N Solace persistent
 publishes. This is acceptable for the first reliable transport because common
@@ -160,13 +163,13 @@ The internal queue ingress topic should be deterministic and isolated from user
 topics:
 
 ```text
-_kombu/{namespace}/queue/{encoded_queue_name}
+_kombu/{environment}/{namespace}/queue/{encoded_queue_name}
 ```
 
 Requirements:
 
-- encode queue names so `/`, `*`, `>`, NULL, and non-ASCII edge cases cannot
-  change Solace topic structure
+- encode environment, namespace, and queue names so `/`, `*`, `>`, NULL, and
+  non-ASCII edge cases cannot change Solace topic structure
 - keep the final topic within Solace limits, including 250 bytes and 128 levels
 - provide a collision-resistant fallback for very long queue names
 - test round trips for normal Celery queue names, punctuation, slashes, unicode,
@@ -179,13 +182,17 @@ let Solace queue topic subscriptions route messages. That mode must be designed
 and tested separately because:
 
 - AMQP topic `*` and Solace `*` are close enough for one topic word/level.
-- AMQP topic `#` means zero or more words and can appear in positions Solace
-  `>` cannot represent directly.
+- Kombu topic `#` is implemented by Kombu's regex matcher and can appear in
+  positions Solace `>` cannot represent directly.
 - Solace `>` is a one-or-more wildcard at the last topic level.
 - Exact direct routing can be optimized natively, but mixed direct/topic/fanout
   behavior needs dedicated translation tests.
 
 Native routing is not part of the v1 correctness baseline.
+Any future native routing mode must use conservative wildcard translation:
+literal words map to Solace topic levels, `*` maps to `*`, and terminal `#`
+can map to `>` only when the pattern is otherwise safe. Unsafe patterns must
+fall back to Kombu-owned routing or fail clearly.
 
 ## Queue Lifecycle
 
@@ -302,6 +309,7 @@ Expected Kombu URL and `transport_options` inputs:
 
 - `solace://user:password@host:port/vpn`
 - `transport_options["vpn_name"]`
+- `transport_options["environment"]`
 - `transport_options["queue_name_prefix"]`
 - `transport_options["namespace"]`
 - `transport_options["create_missing_queues"]`
@@ -314,6 +322,8 @@ Expected Kombu URL and `transport_options` inputs:
 - `transport_options["management_url"]`
 - `transport_options["management_username"]`
 - `transport_options["management_password"]`
+- `transport_options["size_strategy"]`
+- `transport_options["purge_strategy"]`
 - TLS options matching Solace transport security strategy
 
 URL parsing must be tested independently from connection creation.

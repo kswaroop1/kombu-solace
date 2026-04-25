@@ -12,45 +12,47 @@
 
 ## Phase 1: Test Scaffolding
 
-- [ ] Add package skeleton without transport behavior.
-- [ ] Add pytest configuration and coverage settings.
-- [ ] Add Solace adapter protocol/fake classes for tests.
-- [ ] Add fake publish receipt and fake inbound delivery models.
-- [ ] Add behavior tests for connection option parsing.
-- [ ] Add behavior tests for internal topic naming and limits.
+- [x] Add package skeleton without transport behavior.
+- [x] Add pytest configuration and coverage settings.
+- [x] Add Solace adapter protocol/fake classes for tests.
+- [x] Add fake publish receipt and fake inbound delivery models.
+- [x] Add behavior tests for connection option parsing.
+- [x] Add behavior tests for internal topic naming, environment root, and limits.
 - [ ] Add behavior tests for queue declaration lifecycle.
-- [ ] Add behavior tests proving queue bindings do not create user Solace
+- [x] Add behavior tests proving queue bindings do not create user Solace
   subscriptions in default Kombu routing mode.
-- [ ] Add behavior tests for direct exchange publishing.
-- [ ] Add behavior tests for topic exchange publishing, including AMQP `#`
-  zero-or-more semantics.
+- [x] Add behavior tests for direct exchange publishing.
+- [x] Add behavior tests for topic exchange publishing, including Kombu `#`
+  semantics.
+- [x] Add conservative wildcard translation tests for future native routing.
 - [ ] Add behavior tests for anonymous exchange publishing.
-- [ ] Add behavior tests for `basic_get`.
-- [ ] Add behavior tests for `basic_consume` and `drain_events`.
-- [ ] Add behavior tests for `basic_ack`.
-- [ ] Add behavior tests for `basic_reject(requeue=True)` mapping to
+- [x] Add behavior tests for `basic_get`.
+- [x] Add behavior tests for `basic_consume` and `drain_events`.
+- [x] Add behavior tests for `basic_ack`.
+- [x] Add behavior tests for `basic_reject(requeue=True)` mapping to
   `Outcome.FAILED`.
-- [ ] Add behavior tests for `basic_reject(requeue=False)` mapping to
+- [x] Add behavior tests for `basic_reject(requeue=False)` mapping to
   `Outcome.REJECTED`.
 - [ ] Add behavior tests for `no_ack=True` immediate acknowledgement.
-- [ ] Add behavior tests proving close with unacked messages does not republish.
+- [x] Add behavior tests proving close with unacked messages does not republish.
 - [ ] Add behavior tests for publish receipt success, failure, and timeout.
 - [ ] Add behavior tests for Solace exceptions mapped to Kombu connection and
   channel errors.
-- [ ] Add behavior tests for optional management adapter behavior.
+- [x] Add behavior tests for optional management adapter behavior.
 
 ## Phase 2: Minimal Reliable Transport Implementation
 
-- [ ] Implement `kombu_solace.naming` for internal queue ingress topics.
-- [ ] Implement `kombu_solace.serialization` envelope conversion.
-- [ ] Implement `kombu_solace.errors` and exception normalization.
-- [ ] Implement `kombu_solace.adapter.SolaceMessagingAdapter`.
-- [ ] Implement optional management adapter protocol with a no-management
+- [x] Implement `kombu_solace.naming` for internal queue ingress topics.
+- [x] Implement conservative wildcard helper for future native routing.
+- [x] Implement `kombu_solace.serialization` envelope conversion.
+- [x] Implement `kombu_solace.errors` and exception normalization.
+- [x] Implement `kombu_solace.adapter.SolaceMessagingAdapter`.
+- [x] Implement optional management adapter protocol with a no-management
   default.
-- [ ] Implement `kombu_solace.transport.Channel` with `do_restore = False`.
-- [ ] Implement `kombu_solace.transport.Transport`.
-- [ ] Register transport alias in package metadata if appropriate.
-- [ ] Make all unit behavior tests pass.
+- [x] Implement `kombu_solace.transport.Channel` with `do_restore = False`.
+- [x] Implement `kombu_solace.transport.Transport`.
+- [x] Register transport alias for process-local use.
+- [x] Make current unit behavior tests pass.
 
 ## Phase 3: Broker Reliability Tests
 
@@ -87,13 +89,13 @@
 
 ## Open Decisions
 
-- [ ] Exact default namespace and internal topic encoding format.
+- [x] Exact default namespace and internal topic encoding format.
 - [ ] Default async publish in-flight limit and back-pressure buffer capacity.
 - [ ] Whether `create_missing_queues` defaults to true for development or false
   for production safety.
-- [ ] Whether queue purge is disabled by default or best effort through queue
-  browsing.
-- [ ] Which management adapter, if any, should be included first for durable
+- [x] Whether queue purge is disabled by default or best effort through queue
+  browsing/receiver drain.
+- [x] Which management adapter, if any, should be included first for durable
   queue delete/size.
 - [ ] Whether native Solace routing is a v2 opt-in feature.
 - [ ] Supported Python, Kombu, Celery, and Solace broker version floor.

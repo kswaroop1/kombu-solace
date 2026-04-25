@@ -131,6 +131,8 @@ Key points:
 - Browser-based purge is best effort if active consumers are also bound because
   consumers can receive/ack messages before the browser sees them.
 - Queue browser window size can improve browse throughput but uses memory.
+- The current implementation uses queue browsing for fallback `_size` and a
+  receive-and-ack loop for fallback `_purge`.
 
 ## Solace Topic Syntax
 
@@ -150,8 +152,13 @@ Key points:
 - Published topic strings treat wildcard characters as literal characters.
 - Topics have limits, including 128 levels and 250 bytes excluding the NULL
   terminator.
-- AMQP topic `#` means zero or more words and does not map cleanly to Solace
-  `>` in every position. This is why v1 uses Kombu-owned routing.
+- Kombu's virtual topic exchange source documents `#` as one or more words and
+  implements matching through a regex generated from the binding key. It should
+  be treated as Kombu behavior, not reimplemented through Solace wildcards in
+  v1.
+- Any native-routing wildcard translator must be conservative and reject
+  non-terminal `#`, bare `#`, empty words, and literal Solace wildcard
+  characters in AMQP topic words.
 
 ## Solace Multiprocessing Constraint
 

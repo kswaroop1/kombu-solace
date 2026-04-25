@@ -25,8 +25,12 @@ and only then implementing the Solace adapter and Kombu transport surface.
 ```text
 kombu_solace/
   __init__.py
+  config.py             # Typed Python transport options
   transport.py          # Kombu Transport and Channel classes
   adapter.py            # Thin wrapper over solace-pubsubplus APIs
+  management.py         # Optional SEMP management adapter
+  naming.py             # Solace resource and internal topic naming
+  wildcards.py          # Conservative AMQP-to-Solace wildcard helpers
   serialization.py      # Kombu payload to Solace message mapping
   errors.py             # Solace/Kombu error normalization
 tests/
@@ -54,6 +58,8 @@ The first implementation should support:
 - direct and topic exchanges through Kombu's virtual routing table
 - Kombu-owned routing by default, using per-queue Solace ingress topics to avoid
   duplicate delivery and preserve AMQP topic semantics
+- environment-rooted destination names, so one non-production VPN can safely
+  host `DEV1`, `DEV2`, `UAT1`, `UAT3`, and similar environments
 - durable queue declaration mapped to Solace queue resources
 - publish to queue-backed Solace topics using persistent messages
 - synchronous `basic_get`
@@ -81,6 +87,38 @@ process-local connection model is proven.
    variables.
 5. Add opt-in performance and soak tests before making performance claims.
 6. Validate with Celery-level smoke tests only after Kombu behavior is stable.
+
+## Early Usage Shape
+
+The package registers the `solace` transport alias when `kombu_solace` is
+imported:
+
+```python
+import kombu_solace
+from kombu import Connection
+
+conn = Connection("solace://user:password@broker.example.com:55555/vpn")
+```
+
+Until packaging and import behavior are finalized, tests may also pass the
+transport class directly with `Connection(transport=kombu_solace.transport.Transport)`.
+
+Typical transport options:
+
+```python
+broker_transport_options = {
+    "vpn_name": "nonprod",
+    "environment": "DEV1",
+    "namespace": "orders",
+    "publisher_back_pressure_strategy": "wait",
+    "publisher_buffer_capacity": 1000,
+    "size_strategy": "semp_then_browser",
+    "purge_strategy": "semp_then_receiver",
+    "semp_url": "https://broker.example.com:943",
+    "semp_username": "admin",
+    "semp_password": "...",
+}
+```
 
 ## References
 
