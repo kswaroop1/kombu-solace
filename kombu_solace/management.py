@@ -30,6 +30,10 @@ class SempV2ManagementAdapter:
     def queue_size(self, queue_name: str) -> int:
         return len(self._list_action_messages(queue_name))
 
+    def delete_queue(self, queue_name: str) -> None:
+        path = f"/SEMP/v2/config/msgVpns/{_q(self.vpn_name)}/queues/{_q(queue_name)}"
+        self._request_json("DELETE", path)
+
     def purge_queue(self, queue_name: str) -> int:
         """Delete queued messages through SEMP v2 action endpoints.
 

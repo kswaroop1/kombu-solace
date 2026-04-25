@@ -183,6 +183,10 @@ are present:
 - optional TLS settings
 - optional SEMP settings for management tests
 
+Broker-backed tests clean up queues with test prefixes through SEMP when
+`SOLACE_CLEANUP_QUEUES` is not disabled. The cleanup protects the local broker
+from accumulating durable test queues and exhausting endpoint limits.
+
 Initial integration tests:
 
 - connect and close
@@ -215,6 +219,9 @@ proven against Solace's multiprocessing limitation.
 The initial Celery smoke test is gated by `SOLACE_RUN_CELERY=1`. It starts an
 in-process solo worker, publishes one task through the Solace broker, and uses a
 memory result backend so the test isolates broker transport behavior.
+The worker-interruption redelivery test is gated separately by
+`SOLACE_RUN_CELERY_INTERRUPT=1` because it starts subprocess Celery workers and
+intentionally terminates the first worker during an `acks_late=True` task.
 
 ### Performance and Soak
 
@@ -233,10 +240,13 @@ Performance tests should be opt-in and reproducible:
 Use fixed message sizes and report environment details. These tests should not
 gate normal unit test runs, but they must gate any public performance claim.
 
-The initial performance smoke test is gated by `SOLACE_RUN_PERFORMANCE=1` and
-prints publish plus consume/ack rates for a fixed payload. It is intended to
-catch obvious regressions and establish local baselines; formal release
+The performance smoke tests are gated by `SOLACE_RUN_PERFORMANCE=1` and print
+sync publish, async publish plus receipt flush, consume/ack, multi-queue routing,
+and bounded back-pressure memory numbers for fixed payloads. They are intended
+to catch obvious regressions and establish local baselines; formal release
 benchmarks still need repeated runs and recorded broker/client settings.
+The longer publish/consume soak is gated by `SOLACE_RUN_SOAK=1` and uses
+`SOLACE_SOAK_MESSAGE_COUNT`.
 
 ## Test File Plan
 

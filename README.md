@@ -47,6 +47,7 @@ docs/
   PLAN.md
   RESEARCH.md
   SOURCE_NOTES.md
+  SUPPORT_MATRIX.md
   TESTING.md
   MEMORY.md
 ```
@@ -219,6 +220,9 @@ broker. They are smoke benchmarks, not release claims; production performance
 claims require repeatable benchmark runs with broker, host, message size,
 confirm mode, and client settings recorded.
 
+Set `SOLACE_RUN_SOAK=1` and `SOLACE_SOAK_MESSAGE_COUNT` to include the longer
+publish/consume soak test.
+
 Run the opt-in Celery solo-worker smoke:
 
 ```powershell
@@ -233,6 +237,21 @@ python -m pytest tests/integration/test_celery_smoke.py -q
 
 This starts an in-process Celery worker with `pool="solo"` and uses Solace as
 the broker. Prefork/multiprocessing is still not claimed as supported.
+
+Run the opt-in Celery worker-interruption redelivery test:
+
+```powershell
+$env:SOLACE_RUN_CELERY_INTERRUPT='1'
+$env:SOLACE_HOST='localhost'
+$env:SOLACE_PORT='55588'
+$env:SOLACE_VPN='default'
+$env:SOLACE_USERNAME='sampleUser'
+$env:SOLACE_PASSWORD='samplePassword'
+python -m pytest tests/integration/test_celery_worker_interrupt.py -q
+```
+
+See [docs/SUPPORT_MATRIX.md](docs/SUPPORT_MATRIX.md) for current supported
+versions, worker pool status, defaults, and explicit non-goals.
 
 ## References
 

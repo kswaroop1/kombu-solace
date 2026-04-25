@@ -69,42 +69,42 @@
 - [x] Test SEMP size and purge against local broker.
 - [x] Test queue browser purge when enabled.
 - [x] Test async publish receipt success on broker close/flush.
-- [ ] Test reconnect or clean failure behavior.
+- [x] Test reconnect or clean failure behavior.
 
 ## Phase 4: Performance and Soak
 
 - [x] Add opt-in benchmark test marker and command.
-- [ ] Benchmark async publish throughput and latency.
-- [ ] Benchmark sync publish latency.
-- [ ] Benchmark consume/ack throughput.
-- [ ] Measure publisher memory under back-pressure.
-- [ ] Measure slow consumer memory under low prefetch.
-- [ ] Measure multi-queue routing overhead in Kombu routing mode.
-- [ ] Run long publish/consume soak with no unbounded memory growth.
-- [ ] Record environment and broker details with results.
+- [x] Benchmark async publish throughput and latency.
+- [x] Benchmark sync publish latency.
+- [x] Benchmark consume/ack throughput.
+- [x] Measure publisher memory under back-pressure.
+- [x] Measure slow consumer memory under low prefetch.
+- [x] Measure multi-queue routing overhead in Kombu routing mode.
+- [x] Run long publish/consume soak with no unbounded memory growth.
+- [x] Record environment and broker details with results.
 
 ## Phase 5: Celery Compatibility
 
 - [x] Run a Celery worker smoke test with solo pool first.
 - [x] Document worker pool limitations from Solace multiprocessing constraints.
-- [ ] Validate task retry and reject paths.
+- [x] Validate task retry and reject paths.
 - [x] Validate task publish, execute, and ack paths.
-- [ ] Validate `acks_late=True` redelivery after worker interruption.
-- [ ] Decide whether prefork support is impossible, unsupported, or requires a
+- [x] Validate `acks_late=True` redelivery after worker interruption.
+- [x] Decide whether prefork support is impossible, unsupported, or requires a
   worker-process-local connection model.
 
 ## Open Decisions
 
 - [x] Exact default namespace and internal topic encoding format.
-- [ ] Default async publish in-flight limit and back-pressure buffer capacity.
-- [ ] Whether `create_missing_queues` defaults to true for development or false
+- [x] Default async publish in-flight limit and back-pressure buffer capacity.
+- [x] Whether `create_missing_queues` defaults to true for development or false
   for production safety.
 - [x] Whether queue purge is disabled by default or best effort through queue
   browsing/receiver drain.
 - [x] Which management adapter, if any, should be included first for durable
   queue delete/size.
-- [ ] Whether native Solace routing is a v2 opt-in feature.
-- [ ] Supported Python, Kombu, Celery, and Solace broker version floor.
+- [x] Whether native Solace routing is a v2 opt-in feature.
+- [x] Supported Python, Kombu, Celery, and Solace broker version floor.
 
 ## Definition of Done for First Release
 

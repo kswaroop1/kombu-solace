@@ -7,6 +7,7 @@ import pytest
 from kombu import Connection, Exchange, Producer, Queue
 
 from kombu_solace.management import SempV2ManagementAdapter
+from kombu_solace.errors import SolaceConnectionError
 from kombu_solace.transport import Transport
 
 
@@ -216,3 +217,22 @@ def test_real_broker_async_publish_receipts_flush_on_close():
     connection.close()
 
     assert seen == [0, 1, 2, 3, 4]
+
+
+@pytest.mark.skipif(not _integration_enabled(), reason="Solace integration not enabled")
+def test_connection_failure_maps_to_clean_connection_error():
+    connection = Connection(
+        transport=Transport,
+        hostname="localhost",
+        port=int(os.environ.get("SOLACE_BAD_PORT", "1")),
+        userid=os.environ.get("SOLACE_USERNAME", "sampleUser"),
+        password=os.environ.get("SOLACE_PASSWORD", "samplePassword"),
+        virtual_host=os.environ.get("SOLACE_VPN", "default"),
+        transport_options={
+            "environment": os.environ.get("SOLACE_ENVIRONMENT", "DEV1"),
+            "namespace": os.environ.get("SOLACE_NAMESPACE", "kombu-solace-it"),
+        },
+    )
+
+    with pytest.raises(SolaceConnectionError):
+        connection.channel()

@@ -202,9 +202,15 @@ Observed on 2026-04-25:
   settlement path that does not redeliver on the default queue configuration.
 - Browser-based size fallback and receiver-drain purge fallback passed against
   the local broker without SEMP.
-- A 100-message local performance smoke on Windows/Podman with sync publish
-  printed approximately 170.91 publishes/second and 3925.89 consume-acks/second.
-  This is only a local smoke baseline, not a release performance claim.
+- Local performance smoke on Windows/Podman was run with small message counts.
+  Observed examples included sync publish at about 184 messages/second, async
+  publish with close/flush at about 19 messages/second for a 20-message run,
+  consume/ack above 5900 messages/second, and two-queue Kombu routing delivering
+  40 Solace publishes from 20 logical topic messages in about 0.220 seconds.
+  Slow-consumer and bounded back-pressure memory smokes completed, and a
+  30-message soak completed in about 1.03 seconds with traced peak memory around
+  200 KB.
+  These are local smoke baselines, not release performance claims.
 
 ## Implementation Naming Notes
 
@@ -242,6 +248,13 @@ Observed from the installed Kombu source:
 - The local Celery solo smoke passed against the Podman broker. During worker
   shutdown the Solace SDK logged transient `Connection refused (10061)` warnings
   from service callbacks, but the task completed and the test passed.
+- Celery retry and `Reject(requeue=False)` smoke tests passed with the in-process
+  solo worker when `broker_pool_limit=0` was set to prevent producer connection
+  reuse from interfering with the worker consumer connection in the test
+  harness.
+- A subprocess Celery solo-worker interruption test passed: the first worker
+  exited during an `acks_late=True` task before ack, and a second worker
+  received and completed the redelivered task.
 
 ## Publish Receipt Notes
 

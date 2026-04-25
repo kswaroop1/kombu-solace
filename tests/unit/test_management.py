@@ -43,6 +43,21 @@ def test_semp_purge_lists_and_deletes_messages():
     assert methods == ["GET", "PUT", "PUT", "GET"]
 
 
+def test_semp_delete_queue_uses_config_endpoint():
+    adapter = SempV2ManagementAdapter(
+        base_url="https://broker.example.com:943",
+        vpn_name="nonprod",
+    )
+
+    with patch("kombu_solace.management.urlopen", return_value=_json_response({})) as urlopen:
+        adapter.delete_queue("DEV1.orders.celery")
+
+    request = urlopen.call_args.args[0]
+    assert request.get_method() == "DELETE"
+    assert "/SEMP/v2/config/msgVpns/nonprod/queues/" in request.full_url
+    assert "DEV1.orders.celery" in request.full_url
+
+
 def _json_response(payload):
     response = Mock()
     response.read.return_value = json.dumps(payload).encode("utf-8")
