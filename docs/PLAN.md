@@ -84,9 +84,10 @@
 
 ## Phase 5: Celery Compatibility
 
-- [ ] Run a Celery worker smoke test with solo pool first.
-- [ ] Document worker pool limitations from Solace multiprocessing constraints.
-- [ ] Validate task publish, execute, ack, retry, and reject paths.
+- [x] Run a Celery worker smoke test with solo pool first.
+- [x] Document worker pool limitations from Solace multiprocessing constraints.
+- [ ] Validate task retry and reject paths.
+- [x] Validate task publish, execute, and ack paths.
 - [ ] Validate `acks_late=True` redelivery after worker interruption.
 - [ ] Decide whether prefork support is impossible, unsupported, or requires a
   worker-process-local connection model.

@@ -212,6 +212,10 @@ Celery tests come after Kombu behavior is stable, but before a release claim:
 Prefork must remain unsupported until a process-local connection lifecycle is
 proven against Solace's multiprocessing limitation.
 
+The initial Celery smoke test is gated by `SOLACE_RUN_CELERY=1`. It starts an
+in-process solo worker, publishes one task through the Solace broker, and uses a
+memory result backend so the test isolates broker transport behavior.
+
 ### Performance and Soak
 
 Performance tests should be opt-in and reproducible:

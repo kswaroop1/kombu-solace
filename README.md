@@ -219,6 +219,21 @@ broker. They are smoke benchmarks, not release claims; production performance
 claims require repeatable benchmark runs with broker, host, message size,
 confirm mode, and client settings recorded.
 
+Run the opt-in Celery solo-worker smoke:
+
+```powershell
+$env:SOLACE_RUN_CELERY='1'
+$env:SOLACE_HOST='localhost'
+$env:SOLACE_PORT='55588'
+$env:SOLACE_VPN='default'
+$env:SOLACE_USERNAME='sampleUser'
+$env:SOLACE_PASSWORD='samplePassword'
+python -m pytest tests/integration/test_celery_smoke.py -q
+```
+
+This starts an in-process Celery worker with `pool="solo"` and uses Solace as
+the broker. Prefork/multiprocessing is still not claimed as supported.
+
 ## References
 
 - Kombu source: <https://github.com/celery/kombu>

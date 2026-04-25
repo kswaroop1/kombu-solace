@@ -230,3 +230,15 @@ Observed from the installed Kombu source:
 - `kombu_solace.__init__` therefore registers `solace` into
   `TRANSPORT_ALIASES` on import. Celery applications should import
   `kombu_solace` before resolving `solace://` broker URLs.
+
+## Celery Smoke Notes
+
+- Celery 5.6.3 is available in the local Python environment.
+- The first Celery test uses `celery.contrib.testing.worker.start_worker` with
+  `pool="solo"` and `perform_ping_check=False`.
+- The smoke test uses Solace as the broker and `cache+memory://` as the result
+  backend, so it verifies broker publish/consume/ack without adding a separate
+  result-backend dependency.
+- The local Celery solo smoke passed against the Podman broker. During worker
+  shutdown the Solace SDK logged transient `Connection refused (10061)` warnings
+  from service callbacks, but the task completed and the test passed.
