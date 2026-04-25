@@ -37,7 +37,7 @@
   `Outcome.REJECTED`.
 - [x] Add behavior tests for `no_ack=True` immediate acknowledgement.
 - [x] Add behavior tests proving close with unacked messages does not republish.
-- [ ] Add behavior tests for publish receipt success and timeout.
+- [x] Add behavior tests for publish receipt success and timeout.
 - [x] Add behavior tests for publish receipt failure.
 - [x] Add behavior tests for Solace exceptions mapped to Kombu connection and
   channel errors.
@@ -65,9 +65,10 @@
 - [x] Test unacked redelivery after receiver close/reconnect.
 - [x] Test NACK `FAILED` redelivery when broker supports settlement outcomes.
 - [x] Test NACK `REJECTED` discard or DMQ behavior when configured.
-- [ ] Test publish receipt failure surfaces to Kombu.
+- [x] Test publish receipt failure surfaces to Kombu.
 - [x] Test SEMP size and purge against local broker.
 - [x] Test queue browser purge when enabled.
+- [x] Test async publish receipt success on broker close/flush.
 - [ ] Test reconnect or clean failure behavior.
 
 ## Phase 4: Performance and Soak

@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from queue import Empty
+from threading import Condition
 from typing import Protocol
 
 from .errors import PublishFailed, QueueUnavailable, SettlementFailed
@@ -112,15 +113,35 @@ except Exception:  # pragma: no cover - used only when dependency import fails
 
 
 class _PublishReceiptListener(_SolaceReceiptListenerBase):
-    def __init__(self, failures: deque[Exception]) -> None:
+    def __init__(
+        self,
+        failures: deque[Exception],
+        *,
+        condition: Condition | None = None,
+        pending_counter: list[int] | None = None,
+    ) -> None:
         self.failures = failures
+        self.condition = condition
+        self.pending_counter = pending_counter
 
     def on_publish_receipt(self, publish_receipt):
-        if not publish_receipt.is_persisted:
-            exc = publish_receipt.exception
-            if exc is None:
-                exc = PublishFailed("Solace publish was not persisted")
-            self.failures.append(exc)
+        condition = self.condition
+        if condition is None:
+            self._record_receipt(publish_receipt)
+            return
+        with condition:
+            self._record_receipt(publish_receipt)
+            if self.pending_counter is not None and self.pending_counter[0] > 0:
+                self.pending_counter[0] -= 1
+            condition.notify_all()
+
+    def _record_receipt(self, publish_receipt) -> None:
+        if publish_receipt.is_persisted:
+            return
+        exc = publish_receipt.exception
+        if exc is None:
+            exc = PublishFailed("Solace publish was not persisted")
+        self.failures.append(exc)
 
 
 class PubSubPlusSolaceAdapter:
@@ -145,6 +166,8 @@ class PubSubPlusSolaceAdapter:
         self.purge_receive_timeout_ms = 100
         self.purge_max_messages: int | None = None
         self._publish_failures: deque[Exception] = deque()
+        self._publish_condition = Condition()
+        self._pending_publishes = [0]
 
     def connect(self, settings: dict) -> None:
         from solace.messaging.config.authentication_strategy import BasicUserNamePassword
@@ -228,7 +251,16 @@ class PubSubPlusSolaceAdapter:
             except Exception as exc:
                 raise PublishFailed(str(exc)) from exc
             return PublishResult()
-        self.publisher.publish(payload, destination, user_context=topic)
+        with self._publish_condition:
+            self._pending_publishes[0] += 1
+        try:
+            self.publisher.publish(payload, destination, user_context=topic)
+        except Exception:
+            with self._publish_condition:
+                if self._pending_publishes[0] > 0:
+                    self._pending_publishes[0] -= 1
+                self._publish_condition.notify_all()
+            raise
         self._raise_publish_failure()
         return PublishResult()
 
@@ -261,6 +293,7 @@ class PubSubPlusSolaceAdapter:
             receiver.terminate()
 
     def flush_publisher(self, timeout_ms: int | None = None) -> None:
+        self._wait_for_publish_receipts(timeout_ms)
         self._raise_publish_failure()
 
     def queue_size_by_browsing(self, queue_name: str, timeout_ms: int) -> int:
@@ -311,7 +344,11 @@ class PubSubPlusSolaceAdapter:
         publisher = builder.build()
         publisher.start()
         publisher.set_message_publish_receipt_listener(
-            _PublishReceiptListener(self._publish_failures)
+            _PublishReceiptListener(
+                self._publish_failures,
+                condition=self._publish_condition,
+                pending_counter=self._pending_publishes,
+            )
         )
         return publisher
 
@@ -359,6 +396,21 @@ class PubSubPlusSolaceAdapter:
         if self._publish_failures:
             exc = self._publish_failures.popleft()
             raise PublishFailed(str(exc)) from exc
+
+    def _wait_for_publish_receipts(self, timeout_ms: int | None) -> None:
+        timeout = None if timeout_ms is None else max(timeout_ms, 0) / 1000
+        with self._publish_condition:
+            if timeout is None:
+                while self._pending_publishes[0] > 0:
+                    self._publish_condition.wait()
+            elif not self._publish_condition.wait_for(
+                lambda: self._pending_publishes[0] == 0,
+                timeout=timeout,
+            ):
+                raise PublishFailed(
+                    f"timed out waiting for {self._pending_publishes[0]} "
+                    "Solace publish receipt(s)"
+                )
 
 
 class InMemorySolaceAdapter:

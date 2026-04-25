@@ -242,3 +242,14 @@ Observed from the installed Kombu source:
 - The local Celery solo smoke passed against the Podman broker. During worker
   shutdown the Solace SDK logged transient `Connection refused (10061)` warnings
   from service callbacks, but the task completed and the test passed.
+
+## Publish Receipt Notes
+
+- Async persistent publishing tracks a pending receipt count in the adapter.
+- The receipt listener records failures and decrements pending count on both
+  persisted and rejected receipts.
+- Publisher flush waits for pending receipts and raises `PublishFailed` on
+  timeout so Kombu/Celery retry code can treat it as a connection-level failure.
+- A local broker test confirmed async publishes receive receipts and are flushed
+  successfully on connection close before messages are consumed from a fresh
+  connection.

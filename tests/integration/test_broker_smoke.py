@@ -183,3 +183,36 @@ def test_real_broker_browser_size_and_receiver_purge_fallbacks():
     assert channel._purge(queue_name) == 3
     assert channel.basic_get(queue_name) is None
     connection.close()
+
+
+@pytest.mark.skipif(not _integration_enabled(), reason="Solace integration not enabled")
+def test_real_broker_async_publish_receipts_flush_on_close():
+    suffix = uuid.uuid4().hex
+    queue_name = f"it-async-{suffix}"
+    exchange = Exchange(f"it-async-tasks-{suffix}", type="direct")
+    queue = Queue(queue_name, exchange=exchange, routing_key=queue_name)
+    connection = _connection_with_options(
+        publish_confirm_mode="async",
+        publish_ack_timeout_ms=10000,
+        publisher_buffer_capacity=100,
+    )
+    channel = connection.channel()
+    queue(channel).declare()
+    producer = Producer(channel, exchange=exchange)
+
+    for i in range(5):
+        producer.publish({"i": i}, routing_key=queue_name)
+    connection.close()
+
+    connection = _connection()
+    channel = connection.channel()
+    queue(channel).declare()
+    seen = []
+    for _ in range(5):
+        message = channel.basic_get(queue_name)
+        assert message is not None
+        seen.append(message.payload["i"])
+        message.ack()
+    connection.close()
+
+    assert seen == [0, 1, 2, 3, 4]

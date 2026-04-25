@@ -336,6 +336,12 @@ Publish options:
 The transport must flush or terminate the publisher on connection close and
 must test receipt failure, timeout, and broker rejection paths.
 
+Async publishing keeps an in-process pending receipt count. The publish receipt
+listener decrements the count on both success and failure, stores broker
+rejections, and wakes any close/flush waiter. `flush_publisher(timeout_ms)` must
+raise a mapped publish failure if receipts do not arrive before the configured
+timeout.
+
 ## Receive Model
 
 The first implementation should use synchronous `receive_message(timeout_ms)`
