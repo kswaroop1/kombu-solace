@@ -72,7 +72,7 @@
 
 ## Phase 4: Performance and Soak
 
-- [ ] Add opt-in benchmark test marker and command.
+- [x] Add opt-in benchmark test marker and command.
 - [ ] Benchmark async publish throughput and latency.
 - [ ] Benchmark sync publish latency.
 - [ ] Benchmark consume/ack throughput.

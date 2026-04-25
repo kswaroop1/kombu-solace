@@ -201,6 +201,24 @@ $env:SOLACE_SEMP_VERIFY_TLS='false'
 python -m pytest tests/integration -q
 ```
 
+Run opt-in performance smoke tests:
+
+```powershell
+$env:SOLACE_RUN_PERFORMANCE='1'
+$env:SOLACE_PERF_MESSAGE_COUNT='1000'
+$env:SOLACE_HOST='localhost'
+$env:SOLACE_PORT='55588'
+$env:SOLACE_VPN='default'
+$env:SOLACE_USERNAME='sampleUser'
+$env:SOLACE_PASSWORD='samplePassword'
+python -m pytest tests/performance -q -s
+```
+
+These tests print publish and consume/ack rates for the current machine and
+broker. They are smoke benchmarks, not release claims; production performance
+claims require repeatable benchmark runs with broker, host, message size,
+confirm mode, and client settings recorded.
+
 ## References
 
 - Kombu source: <https://github.com/celery/kombu>

@@ -229,6 +229,11 @@ Performance tests should be opt-in and reproducible:
 Use fixed message sizes and report environment details. These tests should not
 gate normal unit test runs, but they must gate any public performance claim.
 
+The initial performance smoke test is gated by `SOLACE_RUN_PERFORMANCE=1` and
+prints publish plus consume/ack rates for a fixed payload. It is intended to
+catch obvious regressions and establish local baselines; formal release
+benchmarks still need repeated runs and recorded broker/client settings.
+
 ## Test File Plan
 
 ```text

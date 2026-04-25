@@ -202,6 +202,9 @@ Observed on 2026-04-25:
   settlement path that does not redeliver on the default queue configuration.
 - Browser-based size fallback and receiver-drain purge fallback passed against
   the local broker without SEMP.
+- A 100-message local performance smoke on Windows/Podman with sync publish
+  printed approximately 170.91 publishes/second and 3925.89 consume-acks/second.
+  This is only a local smoke baseline, not a release performance claim.
 
 ## Implementation Naming Notes
 
