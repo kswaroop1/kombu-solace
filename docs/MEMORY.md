@@ -28,6 +28,10 @@
 - `no_ack=True` still uses a client-ack Solace receiver; the transport acks the
   Solace delivery reference immediately and does not add the message to Kombu
   QoS state.
+- The installed Kombu version resolves transport schemes from
+  `kombu.transport.TRANSPORT_ALIASES`; it does not auto-discover third-party
+  transport entry points. Celery apps must import `kombu_solace` before using
+  `solace://`.
 - Keep Solace imports behind an adapter boundary.
 - Serialize the full Kombu message envelope initially for compatibility.
 - Disable Kombu virtual unacked restore because Solace broker redelivery is the

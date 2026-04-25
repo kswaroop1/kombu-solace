@@ -105,6 +105,21 @@ from kombu import Connection
 conn = Connection("solace://user:password@broker.example.com:55555/vpn")
 ```
 
+Celery applications must import `kombu_solace` before the app first resolves the
+broker URL:
+
+```python
+import kombu_solace
+from celery import Celery
+
+app = Celery("orders")
+app.conf.broker_url = "solace://user:password@broker.example.com:55555/nonprod"
+```
+
+Kombu resolves transport names from its in-process alias table. The installed
+Kombu version used by this project does not auto-discover third-party transport
+entry points, so package import is the registration step.
+
 Until packaging and import behavior are finalized, tests may also pass the
 transport class directly with `Connection(transport=kombu_solace.transport.Transport)`.
 

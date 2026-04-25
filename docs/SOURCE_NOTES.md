@@ -215,3 +215,15 @@ Observed on 2026-04-25:
 - Unsafe topic root levels and logical queue names must be encoded before they
   become Solace subscription strings, so AMQP/Kombu wildcard characters cannot
   change Solace wildcard scope.
+
+## Kombu Transport Registration Notes
+
+Observed from the installed Kombu source:
+
+- `kombu.transport.resolve_transport()` checks the in-process
+  `TRANSPORT_ALIASES` table and then imports the resolved symbol.
+- The inspected Kombu transport resolver does not load third-party transport
+  entry points.
+- `kombu_solace.__init__` therefore registers `solace` into
+  `TRANSPORT_ALIASES` on import. Celery applications should import
+  `kombu_solace` before resolving `solace://` broker URLs.
