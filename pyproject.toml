@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kombu-solace"
+version = "0.0.0"
+description = "Kombu transport for Solace PubSub+"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+  {name = "kombu-solace contributors"}
+]
+dependencies = [
+  "kombu>=5.3",
+  "solace-pubsubplus>=1.11",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8",
+  "coverage[toml]>=7",
+]
+perf = [
+  "pytest-benchmark>=4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+  "integration: tests that require a configured Solace broker",
+  "performance: opt-in benchmark and soak tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["kombu_solace"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
