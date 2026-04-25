@@ -103,7 +103,15 @@ def build_service_properties(settings: dict) -> dict:
     }
 
 
-class _PublishReceiptListener:
+try:
+    from solace.messaging.publisher.persistent_message_publisher import (
+        MessagePublishReceiptListener as _SolaceReceiptListenerBase,
+    )
+except Exception:  # pragma: no cover - used only when dependency import fails
+    _SolaceReceiptListenerBase = object
+
+
+class _PublishReceiptListener(_SolaceReceiptListenerBase):
     def __init__(self, failures: deque[Exception]) -> None:
         self.failures = failures
 
@@ -299,10 +307,10 @@ class PubSubPlusSolaceAdapter:
                 f"unknown publisher back-pressure strategy: {self.publisher_back_pressure_strategy}"
             )
         publisher = builder.build()
+        publisher.start()
         publisher.set_message_publish_receipt_listener(
             _PublishReceiptListener(self._publish_failures)
         )
-        publisher.start()
         return publisher
 
     def _build_receiver(self, queue_name: str, *, durable: bool):

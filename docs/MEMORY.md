@@ -15,6 +15,13 @@
 - Publish to Solace through internal per-queue ingress topics in v1.
 - Do not create user exchange/routing-key Solace subscriptions in default
   routing mode.
+- Keep Kombu/Celery logical queue names in Kombu routing state. Map to physical
+  Solace queue resource names only at the adapter/management boundary.
+- `environment` alone isolates topics, not physical queue names. Setting
+  `application`, `queue_name_prefix`, or `queue_name_template` opts into
+  physical queue naming such as `corp.orders.DEV1.celery`.
+- `topic_prefix` plus `application` can put all internal queue ingress topics
+  under a visible root such as `corp/nonprod/orders/DEV1/_kombu/...`.
 - Keep Solace imports behind an adapter boundary.
 - Serialize the full Kombu message envelope initially for compatibility.
 - Disable Kombu virtual unacked restore because Solace broker redelivery is the

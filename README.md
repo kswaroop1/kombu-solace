@@ -60,6 +60,11 @@ The first implementation should support:
   duplicate delivery and preserve AMQP topic semantics
 - environment-rooted destination names, so one non-production VPN can safely
   host `DEV1`, `DEV2`, `UAT1`, `UAT3`, and similar environments
+- optional physical Solace queue naming conventions such as
+  `corp.orders.DEV1.celery` while keeping the Kombu/Celery logical queue name
+  as `celery`
+- optional Solace topic roots such as `corp/nonprod/orders/DEV1/...` so task,
+  topic, and broadcast traffic can be isolated by application and environment
 - durable queue declaration mapped to Solace queue resources
 - publish to queue-backed Solace topics using persistent messages
 - synchronous `basic_get`
@@ -110,6 +115,9 @@ broker_transport_options = {
     "vpn_name": "nonprod",
     "environment": "DEV1",
     "namespace": "orders",
+    "application": "orders",
+    "queue_name_prefix": "corp",
+    "topic_prefix": "corp/nonprod",
     "publisher_back_pressure_strategy": "wait",
     "publisher_buffer_capacity": 1000,
     "size_strategy": "semp_then_browser",
@@ -118,6 +126,64 @@ broker_transport_options = {
     "semp_username": "admin",
     "semp_password": "...",
 }
+```
+
+Naming options:
+
+- `environment`: environment identifier, for example `DEV1`, `UAT3`, or `PROD`.
+- `namespace`: transport namespace inside the topic root.
+- `application` / `app`: application name used in queue and topic roots.
+- `queue_name_prefix`: optional organization or platform prefix for physical
+  Solace queue names.
+- `queue_name_template`: optional Python format string with `{prefix}`,
+  `{application}`, `{app}`, `{environment}`, `{env}`, `{queue}`, and
+  `{logical_queue}` fields. If omitted, setting `application` or
+  `queue_name_prefix` uses `{prefix}.{application}.{environment}.{queue}` with
+  empty fields removed.
+- `topic_prefix` / `destination_prefix`: optional Solace topic path prefix. With
+  `topic_prefix="corp/nonprod"`, `application="orders"`, and
+  `environment="DEV1"`, internal queue ingress topics start with
+  `corp/nonprod/orders/DEV1/_kombu/...`.
+
+The transport keeps Kombu/Celery logical queue names unchanged for routing and
+only maps them at the Solace adapter boundary. This prevents application code
+from needing to know corporate broker naming conventions.
+
+## Local Broker Test Environment
+
+On Windows with Podman, some systems reserve ports around `55555`. If
+`Test-NetConnection localhost -Port 55555` fails while the container is running,
+map host port `55588` to Solace's container SMF port `55555`.
+
+```powershell
+podman run -d --name solace `
+  -p 8080:8080 `
+  -p 55588:55555 `
+  -p 5672:5672 `
+  -p 8000:8000 `
+  -p 8008:8008 `
+  -p 9000:9000 `
+  -p 2222:2222 `
+  --shm-size=2g `
+  -e username_admin_globalaccesslevel=admin `
+  -e username_admin_password=admin `
+  docker.io/solace/solace-pubsub-standard:latest
+```
+
+Run broker-gated tests:
+
+```powershell
+$env:SOLACE_RUN_INTEGRATION='1'
+$env:SOLACE_HOST='localhost'
+$env:SOLACE_PORT='55588'
+$env:SOLACE_VPN='default'
+$env:SOLACE_USERNAME='sampleUser'
+$env:SOLACE_PASSWORD='samplePassword'
+$env:SOLACE_SEMP_URL='http://localhost:8080'
+$env:SOLACE_SEMP_USERNAME='admin'
+$env:SOLACE_SEMP_PASSWORD='admin'
+$env:SOLACE_SEMP_VERIFY_TLS='false'
+python -m pytest tests/integration -q
 ```
 
 ## References

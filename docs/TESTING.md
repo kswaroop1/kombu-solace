@@ -150,10 +150,15 @@ Naming tests must cover:
 - internal topic generation for simple queue names
 - queue names containing `/`, `*`, `>`, spaces, punctuation, and unicode
 - different `environment` values isolate internal destination roots
+- `topic_prefix` plus `application` produce an isolated Solace topic root for
+  task, topic-exchange, and broadcast-style traffic
 - very long queue names
 - collision-resistant fallback behavior
 - Solace topic length and level limits
-- queue name prefix and namespace isolation
+- physical queue name prefix/application/environment mapping
+- custom physical queue name templates
+- management and purge fallbacks use physical Solace queue names, not Kombu
+  logical queue names
 
 ### Integration: Solace Broker
 
@@ -178,7 +183,8 @@ Initial integration tests:
 - reject/discard with `Outcome.REJECTED` if broker supports NACKs
 - unacked message redelivers after receiver close/reconnect
 - publish receipt failure is surfaced
-- queue purge via browser when enabled
+- SEMP queue size and purge when management settings are present
+- queue purge via browser/receiver fallback when enabled
 
 ### Celery Smoke
 

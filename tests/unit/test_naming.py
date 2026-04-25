@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from kombu_solace.naming import queue_ingress_topic
+from kombu_solace.naming import physical_queue_name, queue_ingress_topic
 
 
 @pytest.mark.parametrize(
@@ -47,3 +47,68 @@ def test_queue_ingress_topic_uses_environment_as_destination_root():
 
     assert dev_topic != uat_topic
     assert dev_topic.split("/")[1] != uat_topic.split("/")[1]
+
+
+def test_queue_ingress_topic_can_use_corporate_topic_root():
+    topic = queue_ingress_topic(
+        "celery",
+        environment="DEV1",
+        namespace="tasks",
+        application="orders",
+        topic_prefix="corp/nonprod",
+    )
+
+    assert topic.startswith("corp/nonprod/orders/DEV1/_kombu/tasks/queue/")
+
+
+def test_physical_queue_name_defaults_to_logical_queue_name():
+    assert physical_queue_name("celery", environment="DEV1") == "celery"
+
+
+def test_physical_queue_name_uses_prefix_application_environment_convention():
+    assert (
+        physical_queue_name(
+            "celery",
+            environment="DEV1",
+            application="orders",
+            queue_name_prefix="corp",
+        )
+        == "corp.orders.DEV1.celery"
+    )
+
+
+def test_physical_queue_name_supports_custom_template():
+    assert (
+        physical_queue_name(
+            "celery",
+            environment="UAT3",
+            application="billing",
+            queue_name_prefix="corp",
+            queue_name_template="{prefix}.{application}.{environment}.{queue}",
+        )
+        == "corp.billing.UAT3.celery"
+    )
+
+
+def test_physical_queue_name_encodes_unsafe_segments():
+    name = physical_queue_name(
+        "queue/with/slashes",
+        environment="DEV1",
+        application="orders",
+        queue_name_prefix="corp",
+    )
+
+    assert name.startswith("corp.orders.DEV1.b64-")
+    assert "/" not in name
+
+
+def test_physical_queue_name_hashes_long_logical_names_to_fit():
+    name = physical_queue_name(
+        "q" * 1000,
+        environment="DEV1",
+        application="orders",
+        queue_name_prefix="corp",
+    )
+
+    assert name.startswith("corp.orders.DEV1.sha256-")
+    assert len(name.encode("utf-8")) <= 250

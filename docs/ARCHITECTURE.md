@@ -35,8 +35,12 @@ baseline.
   queue.
 - Default publish mode: asynchronous persistent publish with bounded
   back-pressure and receipt tracking.
-- Destination root: `environment` then `namespace`, so one Solace VPN can host
-  multiple isolated non-production environments.
+- Destination root: configurable by `topic_prefix`, `application`,
+  `environment`, and `namespace`, so one Solace VPN can host multiple isolated
+  non-production environments and applications.
+- Physical Solace queue resource names are mapped separately from Kombu logical
+  queue names, allowing corporate conventions such as
+  `corp.orders.DEV1.celery` without changing Celery routing config.
 - Strict publish mode: optional synchronous publish awaiting broker
   acknowledgement.
 - Unacked restore: disabled at the Kombu virtual layer; Solace broker redelivery
@@ -162,18 +166,64 @@ this explicitly before any production claim.
 The internal queue ingress topic should be deterministic and isolated from user
 topics:
 
+Default:
+
 ```text
 _kombu/{environment}/{namespace}/queue/{encoded_queue_name}
 ```
 
+With `topic_prefix="corp/nonprod"` and `application="orders"`:
+
+```text
+corp/nonprod/orders/{environment}/_kombu/{namespace}/queue/{encoded_queue_name}
+```
+
 Requirements:
 
-- encode environment, namespace, and queue names so `/`, `*`, `>`, NULL, and
-  non-ASCII edge cases cannot change Solace topic structure
+- keep normal organization, application, environment, and namespace values
+  readable when they are safe topic levels
+- encode unsafe topic root segments and queue names so `/`, `*`, `>`, NULL, and
+  non-ASCII edge cases cannot change Solace topic structure or wildcard scope
 - keep the final topic within Solace limits, including 250 bytes and 128 levels
 - provide a collision-resistant fallback for very long queue names
 - test round trips for normal Celery queue names, punctuation, slashes, unicode,
   and long names
+
+### Physical Queue Naming
+
+Kombu and Celery continue to use logical queue names such as `celery`,
+`priority.high`, or `worker.broadcast`. The Solace adapter boundary maps those
+logical names to physical broker queue resources.
+
+Default behavior is intentionally unchanged:
+
+```text
+logical queue: celery
+physical queue: celery
+```
+
+When `queue_name_prefix` or `application` is set, the default physical naming
+convention is:
+
+```text
+{queue_name_prefix}.{application}.{environment}.{logical_queue}
+```
+
+Empty prefix/application fields are omitted. A custom `queue_name_template` can
+override the convention and may use `{prefix}`, `{application}`, `{app}`,
+`{environment}`, `{env}`, `{queue}`, or `{logical_queue}`.
+
+This mapping must be used consistently for:
+
+- queue creation
+- receiver creation
+- queue existence checks
+- ack/reject delivery references
+- SEMP size and purge operations
+- receiver-drain purge fallback
+
+Internal routing topics still include the logical queue name in encoded form,
+because Kombu-owned routing publishes once per matched logical queue.
 
 ### Future: Native Solace Routing
 
@@ -312,6 +362,9 @@ Expected Kombu URL and `transport_options` inputs:
 - `transport_options["environment"]`
 - `transport_options["queue_name_prefix"]`
 - `transport_options["namespace"]`
+- `transport_options["application"]` or `transport_options["app"]`
+- `transport_options["queue_name_template"]`
+- `transport_options["topic_prefix"]` or `transport_options["destination_prefix"]`
 - `transport_options["create_missing_queues"]`
 - `transport_options["publish_confirm_mode"]`
 - `transport_options["publish_ack_timeout"]`

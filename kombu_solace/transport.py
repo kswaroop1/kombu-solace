@@ -11,7 +11,7 @@ from .adapter import PubSubPlusSolaceAdapter
 from .config import SolaceTransportOptions
 from .errors import ManagementUnavailable, QueueUnavailable, SettlementFailed
 from .management import SempV2ManagementAdapter
-from .naming import queue_ingress_topic
+from .naming import physical_queue_name, queue_ingress_topic
 from .serialization import deserialize_envelope, serialize_envelope
 
 
@@ -23,12 +23,20 @@ class Channel(virtual.Channel):
     from_transport_options = virtual.Channel.from_transport_options + (
         "environment",
         "namespace",
+        "application",
+        "queue_name_prefix",
+        "queue_name_template",
+        "topic_prefix",
         "publish_confirm_mode",
         "receive_timeout",
     )
 
     environment = "default"
     namespace = "default"
+    application = None
+    queue_name_prefix = None
+    queue_name_template = None
+    topic_prefix = None
     publish_confirm_mode = "async"
     receive_timeout = 1.0
 
@@ -50,15 +58,27 @@ class Channel(virtual.Channel):
             queue,
             environment=self.options.environment,
             namespace=self.options.namespace,
+            application=self.options.application,
+            topic_prefix=self.options.topic_prefix,
+        )
+
+    def _physical_queue(self, queue: str) -> str:
+        return physical_queue_name(
+            queue,
+            environment=self.options.environment,
+            application=self.options.application,
+            queue_name_prefix=self.options.queue_name_prefix,
+            queue_name_template=self.options.queue_name_template,
         )
 
     def _new_queue(self, queue, **kwargs):
-        self.adapter.ensure_queue(queue, durable=kwargs.get("durable", True))
-        self.adapter.ensure_queue_subscription(queue, self._queue_topic(queue))
+        physical_queue = self._physical_queue(queue)
+        self.adapter.ensure_queue(physical_queue, durable=kwargs.get("durable", True))
+        self.adapter.ensure_queue_subscription(physical_queue, self._queue_topic(queue))
         self._known_queues.add(queue)
 
     def _has_queue(self, queue, **kwargs):
-        return self.adapter.queue_exists(queue)
+        return self.adapter.queue_exists(self._physical_queue(queue))
 
     def _put(self, queue, message, **kwargs):
         self._new_queue(queue)
@@ -74,7 +94,7 @@ class Channel(virtual.Channel):
     def _get(self, queue, timeout=None):
         self._new_queue(queue)
         timeout_ms = self._timeout_ms(timeout)
-        inbound = self.adapter.receive(queue, timeout_ms=timeout_ms)
+        inbound = self.adapter.receive(self._physical_queue(queue), timeout_ms=timeout_ms)
         message = deserialize_envelope(inbound.payload)
         delivery_tag = message.get("properties", {}).get("delivery_tag")
         if delivery_tag is not None:
@@ -85,13 +105,13 @@ class Channel(virtual.Channel):
         strategy = self.options.purge_strategy
         if strategy in ("semp", "semp_then_receiver") and self.connection.management:
             try:
-                return self.connection.management.purge_queue(queue)
+                return self.connection.management.purge_queue(self._physical_queue(queue))
             except ManagementUnavailable:
                 if strategy == "semp":
                     raise
         if strategy in ("receiver", "semp_then_receiver"):
             return self.adapter.purge_by_receiving(
-                queue,
+                self._physical_queue(queue),
                 timeout_ms=self.options.purge_receive_timeout_ms,
                 max_messages=self.options.purge_max_messages,
             )
@@ -101,18 +121,18 @@ class Channel(virtual.Channel):
         strategy = self.options.size_strategy
         if strategy in ("semp", "semp_then_browser") and self.connection.management:
             try:
-                return self.connection.management.queue_size(queue)
+                return self.connection.management.queue_size(self._physical_queue(queue))
             except ManagementUnavailable:
                 if strategy == "semp":
                     raise
         if strategy in ("browser", "semp_then_browser"):
             return self.adapter.queue_size_by_browsing(
-                queue, timeout_ms=self.options.browser_timeout_ms
+                self._physical_queue(queue), timeout_ms=self.options.browser_timeout_ms
             )
         return 0
 
     def _delete(self, queue, *args, **kwargs):
-        self.adapter.close_receiver(queue)
+        self.adapter.close_receiver(self._physical_queue(queue))
         self._known_queues.discard(queue)
 
     def basic_ack(self, delivery_tag, multiple=False):
@@ -152,7 +172,7 @@ class Channel(virtual.Channel):
     def close(self):
         if not self.closed:
             for queue in list(self._known_queues):
-                self.adapter.close_receiver(queue)
+                self.adapter.close_receiver(self._physical_queue(queue))
         return super().close()
 
     def _timeout_ms(self, timeout):

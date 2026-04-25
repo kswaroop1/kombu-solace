@@ -18,6 +18,8 @@
 - [x] Add fake publish receipt and fake inbound delivery models.
 - [x] Add behavior tests for connection option parsing.
 - [x] Add behavior tests for internal topic naming, environment root, and limits.
+- [x] Add behavior tests for physical queue naming with prefix/application/env.
+- [x] Add behavior tests for topic root prefixing with application/env isolation.
 - [ ] Add behavior tests for queue declaration lifecycle.
 - [x] Add behavior tests proving queue bindings do not create user Solace
   subscriptions in default Kombu routing mode.
@@ -56,13 +58,14 @@
 
 ## Phase 3: Broker Reliability Tests
 
-- [ ] Add opt-in integration tests gated by environment variables.
-- [ ] Document required Solace broker settings and permissions.
-- [ ] Test connect, declare queue, internal subscription, publish, consume, ack.
+- [x] Add opt-in integration tests gated by environment variables.
+- [x] Document required Solace broker settings and permissions.
+- [x] Test connect, declare queue, internal subscription, publish, consume, ack.
 - [ ] Test unacked redelivery after receiver close/reconnect.
 - [ ] Test NACK `FAILED` redelivery when broker supports settlement outcomes.
 - [ ] Test NACK `REJECTED` discard or DMQ behavior when configured.
 - [ ] Test publish receipt failure surfaces to Kombu.
+- [x] Test SEMP size and purge against local broker.
 - [ ] Test queue browser purge when enabled.
 - [ ] Test reconnect or clean failure behavior.
 

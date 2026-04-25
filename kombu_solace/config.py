@@ -20,6 +20,10 @@ class SolaceTransportOptions:
     vpn_name: str | None = None
     environment: str = "default"
     namespace: str = "default"
+    application: str | None = None
+    queue_name_prefix: str | None = None
+    queue_name_template: str | None = None
+    topic_prefix: str | None = None
     create_missing_queues: bool = True
     routing_mode: RoutingMode = "kombu"
     publish_confirm_mode: PublishConfirmMode = "async"
@@ -47,6 +51,11 @@ class SolaceTransportOptions:
             vpn_name=options.get("vpn_name") or client.virtual_host,
             environment=options.get("environment", "default"),
             namespace=options.get("namespace", "default"),
+            application=options.get("application") or options.get("app"),
+            queue_name_prefix=options.get("queue_name_prefix"),
+            queue_name_template=options.get("queue_name_template"),
+            topic_prefix=options.get("topic_prefix")
+            or options.get("destination_prefix"),
             create_missing_queues=options.get("create_missing_queues", True),
             routing_mode=options.get("routing_mode", "kombu"),
             publish_confirm_mode=options.get("publish_confirm_mode", "async"),
@@ -84,6 +93,10 @@ class SolaceTransportOptions:
             "vpn_name": self.vpn_name,
             "environment": self.environment,
             "namespace": self.namespace,
+            "application": self.application,
+            "queue_name_prefix": self.queue_name_prefix,
+            "queue_name_template": self.queue_name_template,
+            "topic_prefix": self.topic_prefix,
             "create_missing_queues": self.create_missing_queues,
             "routing_mode": self.routing_mode,
             "publish_confirm_mode": self.publish_confirm_mode,
@@ -133,8 +146,26 @@ class SolaceTransportOptions:
             raise ValueError("invalid purge_strategy")
         if self.publisher_buffer_capacity <= 0:
             raise ValueError("publisher_buffer_capacity must be positive")
+        if self.queue_name_template:
+            self._validate_queue_name_template()
         if self.browser_timeout_ms < 0:
             raise ValueError("browser_timeout_ms must be non-negative")
         if self.purge_receive_timeout_ms < 0:
             raise ValueError("purge_receive_timeout_ms must be non-negative")
         return self
+
+    def _validate_queue_name_template(self) -> None:
+        try:
+            self.queue_name_template.format(
+                prefix=self.queue_name_prefix or "",
+                app=self.application or "",
+                application=self.application or "",
+                env=self.environment or "default",
+                environment=self.environment or "default",
+                queue="celery",
+                logical_queue="celery",
+            )
+        except KeyError as exc:
+            raise ValueError(
+                f"unknown queue_name_template field: {exc.args[0]}"
+            ) from exc

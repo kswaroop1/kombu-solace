@@ -133,6 +133,9 @@ Key points:
 - Queue browser window size can improve browse throughput but uses memory.
 - The current implementation uses queue browsing for fallback `_size` and a
   receive-and-ack loop for fallback `_purge`.
+- On the local PubSub+ Standard broker tested with Podman, SEMP action message
+  listing (`/SEMP/v2/action/.../queues/{queue}/msgs`) matched current pending
+  messages and worked for size/purge validation.
 
 ## Solace Topic Syntax
 
@@ -174,3 +177,33 @@ Key points:
 - Celery prefork uses multiprocessing. Do not claim prefork support until a
   process-local connection lifecycle is implemented and tested.
 - The first Celery smoke target is the `solo` worker pool.
+
+## Local Windows Podman Notes
+
+Observed on 2026-04-25:
+
+- Broker Manager was available at `http://localhost:8080`.
+- Windows reserved TCP ports `55488-55587`, so host ports `55555` and `55554`
+  could not be forwarded even though Podman reported mappings.
+- Mapping host port `55588` to container port `55555` worked for SMF:
+  `-p 55588:55555`.
+- Local integration tests passed with:
+  - `SOLACE_HOST=localhost`
+  - `SOLACE_PORT=55588`
+  - `SOLACE_VPN=default`
+  - `SOLACE_USERNAME=sampleUser`
+  - `SOLACE_PASSWORD=samplePassword`
+  - `SOLACE_SEMP_URL=http://localhost:8080`
+
+## Implementation Naming Notes
+
+- Kombu queue names are logical application names and must remain the names used
+  in Kombu's virtual exchange routing table.
+- Solace queue resources can be named independently at the adapter boundary so
+  organizations can enforce broker conventions such as
+  `corp.orders.DEV1.celery`.
+- Internal queue ingress topics can also be rooted below a corporate
+  application/environment path such as `corp/nonprod/orders/DEV1/_kombu/...`.
+- Unsafe topic root levels and logical queue names must be encoded before they
+  become Solace subscription strings, so AMQP/Kombu wildcard characters cannot
+  change Solace wildcard scope.

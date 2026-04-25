@@ -65,3 +65,34 @@ def test_duplicate_binding_does_not_create_duplicate_internal_subscriptions():
     queue(channel).declare()
 
     assert len(adapter.subscriptions["celery"]) == 1
+
+
+def test_physical_queue_name_is_used_for_solace_resources_only():
+    adapter = InMemorySolaceAdapter()
+    connection = Connection(
+        transport=Transport,
+        transport_options={
+            "adapter": adapter,
+            "environment": "DEV1",
+            "application": "orders",
+            "queue_name_prefix": "corp",
+            "topic_prefix": "corp/nonprod",
+            "namespace": "unit",
+        },
+    )
+    channel = connection.channel()
+    exchange = Exchange("tasks", type="direct")
+    queue = Queue("celery", exchange=exchange, routing_key="celery")
+
+    queue(channel).declare()
+    Producer(channel, exchange=exchange).publish({"ok": True}, routing_key="celery")
+    message = queue(channel).get()
+
+    physical_queue = "corp.orders.DEV1.celery"
+    assert physical_queue in adapter.queues
+    assert "celery" not in adapter.queues
+    assert adapter.published[0][0] in adapter.subscriptions[physical_queue]
+    assert adapter.published[0][0].startswith(
+        "corp/nonprod/orders/DEV1/_kombu/unit/queue/"
+    )
+    assert message.payload == {"ok": True}

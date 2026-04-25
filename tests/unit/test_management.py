@@ -13,21 +13,13 @@ def test_semp_queue_size_parses_msgs_count():
         username="admin",
         password="secret",
     )
-    response = {
-        "data": {
-            "collections": {
-                "msgs": {
-                    "count": 17,
-                }
-            }
-        }
-    }
+    response = {"data": [{"msgId": i} for i in range(17)]}
 
     with patch("kombu_solace.management.urlopen", return_value=_json_response(response)) as urlopen:
         assert adapter.queue_size("DEV1/orders/celery") == 17
 
     request = urlopen.call_args.args[0]
-    assert "queueName%2Cmsgs.count" in request.full_url
+    assert "/SEMP/v2/action/msgVpns/nonprod/queues/" in request.full_url
     assert "DEV1%2Forders%2Fcelery" in request.full_url
     assert request.get_header("Authorization").startswith("Basic ")
 

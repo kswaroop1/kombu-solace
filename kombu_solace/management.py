@@ -6,7 +6,7 @@ import json
 import ssl
 from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlencode
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from .errors import ManagementUnavailable
@@ -28,13 +28,7 @@ class SempV2ManagementAdapter:
     verify_tls: bool = True
 
     def queue_size(self, queue_name: str) -> int:
-        path = (
-            f"/SEMP/v2/monitor/msgVpns/{_q(self.vpn_name)}/queues/"
-            f"{_q(queue_name)}"
-        )
-        query = urlencode({"select": "queueName,msgs.count"})
-        response = self._request_json("GET", f"{path}?{query}")
-        return _extract_message_count(response)
+        return len(self._list_action_messages(queue_name))
 
     def purge_queue(self, queue_name: str) -> int:
         """Delete queued messages through SEMP v2 action endpoints.
@@ -107,19 +101,6 @@ class SempV2ManagementAdapter:
 
 def _q(value: str) -> str:
     return quote(value, safe="")
-
-
-def _extract_message_count(response: dict) -> int:
-    candidates = [
-        response.get("data", {}).get("collections", {}).get("msgs", {}).get("count"),
-        response.get("data", {}).get("msgs", {}).get("count"),
-        response.get("collections", {}).get("msgs", {}).get("count"),
-        response.get("meta", {}).get("paging", {}).get("count"),
-    ]
-    for candidate in candidates:
-        if candidate is not None:
-            return int(candidate)
-    raise ManagementUnavailable("SEMP queue size response did not include msgs.count")
 
 
 def _extract_message_id(message: dict) -> str | None:

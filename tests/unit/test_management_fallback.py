@@ -100,3 +100,20 @@ def test_purge_can_be_bounded_by_max_messages():
 
     assert channel._purge("celery") == 2
     assert channel._size("celery") == 2
+
+
+def test_management_receives_physical_queue_name_when_configured():
+    adapter = InMemorySolaceAdapter()
+    management = FakeManagement(size=1, purge=1)
+    channel = make_channel(
+        adapter,
+        management=management,
+        environment="DEV1",
+        application="orders",
+        queue_name_prefix="corp",
+    )
+
+    assert channel._size("celery") == 1
+    assert channel._purge("celery") == 1
+    assert management.size_calls == ["corp.orders.DEV1.celery"]
+    assert management.purge_calls == ["corp.orders.DEV1.celery"]

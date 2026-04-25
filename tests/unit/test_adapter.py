@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from solace.messaging.config.solace_properties import service_properties
 from solace.messaging.config.solace_properties import transport_layer_properties
+from solace.messaging.publisher.persistent_message_publisher import (
+    MessagePublishReceiptListener,
+)
 
-from kombu_solace.adapter import build_service_properties
+from kombu_solace.adapter import _PublishReceiptListener, build_service_properties
 
 
 def test_build_service_properties_uses_solace_property_keys():
@@ -31,3 +34,8 @@ def test_build_service_properties_preserves_explicit_host_uri():
 
     assert props[transport_layer_properties.HOST] == "tcp://broker.example.com:55555"
 
+
+def test_publish_receipt_listener_matches_solace_required_type():
+    listener = _PublishReceiptListener(failures=[])
+
+    assert isinstance(listener, MessagePublishReceiptListener)
