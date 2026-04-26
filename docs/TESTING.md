@@ -296,3 +296,28 @@ $env:SOLACE_RUN_PERFORMANCE='1'; python -m pytest -m performance tests/performan
 python -m coverage run -m pytest
 python -m coverage report
 ```
+
+## Coverage
+
+Unit-only coverage:
+
+```powershell
+python -m coverage run -m pytest tests/unit -q
+python -m coverage report
+```
+
+Combined unit plus broker/Celery integration coverage:
+
+```powershell
+python -m coverage run -m pytest tests/unit -q
+$env:SOLACE_RUN_INTEGRATION='1'; python -m coverage run --append -m pytest tests/integration/test_broker_smoke.py -q
+$env:SOLACE_RUN_CELERY='1'; python -m coverage run --append -m pytest tests/integration/test_celery_smoke.py -q
+$env:SOLACE_RUN_CELERY_INTERRUPT='1'; python -m coverage run --append -m pytest tests/integration/test_celery_worker_interrupt.py -q
+python -m coverage report
+python -m coverage xml
+python -m coverage html
+```
+
+Current local combined coverage is 85% overall across `kombu_solace`.
+The generated `.coverage`, `coverage.xml`, and `htmlcov/` artifacts are local
+outputs and are not committed.
