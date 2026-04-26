@@ -1,0 +1,5 @@
+-r requirements-test.txt
+
+pytest-benchmark>=4
+build>=1.2
+twine>=5

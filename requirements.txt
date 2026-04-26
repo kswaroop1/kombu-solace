@@ -1,0 +1,2 @@
+kombu>=5.3
+solace-pubsubplus>=1.11

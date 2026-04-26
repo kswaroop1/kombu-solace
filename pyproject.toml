@@ -12,10 +12,27 @@ license = {text = "MIT"}
 authors = [
   {name = "kombu-solace contributors"}
 ]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Framework :: Celery",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
   "kombu>=5.3",
   "solace-pubsubplus>=1.11",
 ]
+
+[project.urls]
+Homepage = "https://github.com/kswaroop1/kombu-solace"
+Repository = "https://github.com/kswaroop1/kombu-solace"
+Issues = "https://github.com/kswaroop1/kombu-solace/issues"
 
 [project.optional-dependencies]
 test = [
@@ -26,6 +43,17 @@ test = [
 perf = [
   "pytest-benchmark>=4",
 ]
+dev = [
+  "pytest>=8",
+  "coverage[toml]>=7",
+  "celery>=5.3",
+  "pytest-benchmark>=4",
+  "build>=1.2",
+  "twine>=5",
+]
+
+[tool.setuptools.packages.find]
+include = ["kombu_solace*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

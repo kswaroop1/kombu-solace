@@ -94,6 +94,40 @@ process-local connection model is proven.
 5. Add opt-in performance and soak tests before making performance claims.
 6. Validate with Celery-level smoke tests only after Kombu behavior is stable.
 
+## Install and Package
+
+Runtime dependencies are declared in `pyproject.toml` and mirrored in
+`requirements.txt` for environments that install from requirements files:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Development and test dependencies are available through either requirements
+files or package extras:
+
+```powershell
+python -m pip install -r requirements-test.txt
+python -m pip install -r requirements-dev.txt
+python -m pip install -e .[dev]
+```
+
+Build PyPI artifacts with:
+
+```powershell
+python -m build
+```
+
+This produces a source distribution and wheel under `dist/`. Validate artifacts
+before publishing:
+
+```powershell
+python -m twine check dist/*
+```
+
+The current package version is `0.0.0`; update `pyproject.toml` and
+`kombu_solace/__init__.py` together before a real PyPI release.
+
 ## Early Usage Shape
 
 The package registers the `solace` transport alias when `kombu_solace` is
