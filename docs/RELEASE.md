@@ -72,6 +72,17 @@ Users can install the wheel directly from the GitHub Release asset URL:
 python -m pip install https://github.com/kswaroop1/kombu-solace/releases/download/v0.1.0/kombu_solace-0.1.0-py3-none-any.whl
 ```
 
+If the tag already exists but the release asset job needs to be rerun, run the
+**Release** workflow manually from GitHub Actions with:
+
+```text
+release_tag = v0.1.0
+publish_to = none
+```
+
+That rebuilds the package from the tag, creates the GitHub Release if needed,
+and uploads the wheel and source distribution.
+
 ## TestPyPI Dry Run
 
 Run the **Release** workflow manually from GitHub Actions with:
