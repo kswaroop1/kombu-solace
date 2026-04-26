@@ -45,6 +45,7 @@ tests/
 docs/
   ARCHITECTURE.md
   PLAN.md
+  RELEASE.md
   RESEARCH.md
   SOURCE_NOTES.md
   SUPPORT_MATRIX.md
@@ -127,6 +128,10 @@ python -m twine check dist/*
 
 The current package version is `0.0.0`; update `pyproject.toml` and
 `kombu_solace/__init__.py` together before a real PyPI release.
+
+Release publishing is automated by GitHub Actions using PyPI Trusted
+Publishing. See [docs/RELEASE.md](docs/RELEASE.md) for the one-time PyPI setup,
+TestPyPI dry run, and public release steps.
 
 ## Early Usage Shape
 
