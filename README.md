@@ -126,8 +126,8 @@ before publishing:
 python -m twine check dist/*
 ```
 
-The current package version is `0.0.0`; update `pyproject.toml` and
-`kombu_solace/__init__.py` together before a real PyPI release.
+Update `pyproject.toml` and `kombu_solace/__init__.py` together before each
+real package release.
 
 Release publishing is automated by GitHub Actions using PyPI Trusted
 Publishing. See [docs/RELEASE.md](docs/RELEASE.md) for the one-time PyPI setup,

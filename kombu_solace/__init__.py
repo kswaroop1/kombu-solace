@@ -1,6 +1,6 @@
 """Kombu transport for Solace PubSub+."""
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 
 
 def register_transport() -> None:
