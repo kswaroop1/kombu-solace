@@ -1,9 +1,16 @@
-# Release and PyPI Publishing
+# Release Artifacts and PyPI Publishing
 
-This project publishes with PyPI Trusted Publishing from GitHub Actions. That
-keeps long-lived PyPI API tokens out of GitHub secrets. GitHub Actions presents
-an OIDC identity to PyPI, and PyPI returns a short-lived upload token only for
-the configured workflow.
+Every version tag should produce GitHub Release artifacts in this repository.
+PyPI publishing is optional and requires separate Trusted Publishing setup.
+
+When a version tag such as `v0.1.0` is pushed, GitHub Actions builds the source
+distribution and wheel, validates them, creates a GitHub Release if needed, and
+uploads both files as release assets.
+
+When a GitHub Release is published, the same workflow also attempts to publish
+to PyPI through Trusted Publishing. That keeps long-lived PyPI API tokens out of
+GitHub secrets. GitHub Actions presents an OIDC identity to PyPI, and PyPI
+returns a short-lived upload token only for the configured workflow.
 
 ## One-Time Setup
 
@@ -33,7 +40,37 @@ the configured workflow.
    - Workflow filename: `release.yml`
    - Environment: `testpypi`
 
-No PyPI API token or GitHub secret is required for the workflow.
+No PyPI API token or GitHub secret is required for the workflow. GitHub Release
+artifacts do not require PyPI setup.
+
+## GitHub Release Artifacts Only
+
+Use this path when you want the package to be downloadable from this repository,
+without making it public on PyPI yet.
+
+1. Update the version in both files:
+   - `pyproject.toml`
+   - `kombu_solace/__init__.py`
+
+2. Commit and push the version change.
+
+3. Push a version tag matching the package version:
+
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow will create or update a GitHub Release for that tag and attach:
+
+- `kombu_solace-<version>-py3-none-any.whl`
+- `kombu_solace-<version>.tar.gz`
+
+Users can install the wheel directly from the GitHub Release asset URL:
+
+```powershell
+python -m pip install https://github.com/kswaroop1/kombu-solace/releases/download/v0.1.0/kombu_solace-0.1.0-py3-none-any.whl
+```
 
 ## TestPyPI Dry Run
 
@@ -70,14 +107,15 @@ python -m pip wheel . --no-deps -w dist
 3. Commit and push the version change.
 
 4. Create a tag matching the package version. Both `0.1.0` and `v0.1.0` are
-   accepted by the workflow.
+   accepted by the workflow, but `v0.1.0` is preferred.
 
 ```powershell
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-5. In GitHub, create and publish a Release for that tag.
+5. In GitHub, publish the Release for that tag. If the tag workflow already
+   created the Release, edit and publish that Release.
 
 The release workflow will:
 
