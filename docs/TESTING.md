@@ -139,6 +139,32 @@ Error mapping tests must cover:
 - mapped errors are exposed through the transport `connection_errors` and
   `channel_errors` tuples so Kombu/Celery retry code can classify them
 
+### Unit: Reliability and Recovery Checklist
+
+Every reliability-sensitive change should keep tests for these behaviors:
+
+- connection failure is classified as a Kombu retryable connection error
+- publish failure, publish receipt failure, and close-time receipt flush failure
+  surface as connection-level failures
+- close-time failures still close the Solace adapter and Kombu connection state
+- receive failures are connection-level failures, while empty receives preserve
+  Kombu's empty/timeout behavior
+- queue declaration failures are channel-level failures; missing queues are not
+  accidentally converted into connection failures
+- ack, no-ack auto-ack, reject/requeue, and reject/discard failures restore the
+  delivery reference so local state is not silently lost
+- `basic_recover` remains unsupported until broker-native recovery semantics are
+  explicitly implemented
+- channel close with unacked messages never republishes locally; redelivery is
+  left to Solace persistent delivery
+- SEMP size/purge failures fall back to browser/receiver strategies only for
+  configured fallback modes, and fail fast for SEMP-only modes
+- browser/receiver fallback works when no management adapter is configured
+- broker integration proves real persistent redelivery after unacked channel
+  close and reject/requeue where the broker supports required outcomes
+- Celery integration proves `acks_late` task redelivery after worker process
+  termination
+
 ### Unit: Serialization
 
 These tests verify round-tripping Kombu message envelopes:

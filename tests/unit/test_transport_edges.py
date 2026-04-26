@@ -7,7 +7,12 @@ import pytest
 from kombu import Connection
 
 from kombu_solace.adapter import InMemorySolaceAdapter, SolaceInbound
-from kombu_solace.errors import ManagementUnavailable, QueueUnavailable, SettlementFailed
+from kombu_solace.errors import (
+    ManagementUnavailable,
+    PublishFailed,
+    QueueUnavailable,
+    SettlementFailed,
+)
 from kombu_solace.transport import Channel, Transport
 
 
@@ -55,6 +60,11 @@ class FailingManagement:
 
     def purge_queue(self, queue_name):
         raise ManagementUnavailable("no SEMP")
+
+
+class FailingFlushAdapter(InMemorySolaceAdapter):
+    def flush_publisher(self, timeout_ms: int | None = None) -> None:
+        raise PublishFailed("receipt failed")
 
 
 def make_channel(adapter=None, **transport_options):
@@ -183,6 +193,37 @@ def test_get_and_deliver_no_ack_without_delivery_tag_still_delivers():
     assert seen == [({"body": "payload", "properties": {}}, "celery")]
 
 
+def test_basic_get_no_ack_failure_restores_delivery_ref_and_raises():
+    adapter = FailingAckAdapter()
+    channel = make_channel(adapter)
+    channel._delivery_refs["tag"] = "ref"
+    message = Mock(delivery_tag="tag")
+    adapter.fail_ack = True
+
+    with patch("kombu_solace.transport.virtual.Channel.basic_get", return_value=message):
+        with pytest.raises(SettlementFailed, match="ack failed"):
+            channel.basic_get("celery", no_ack=True)
+
+    assert channel._delivery_refs["tag"] == "ref"
+
+
+def test_consume_no_ack_failure_does_not_deliver_callback_and_restores_ref():
+    adapter = FailingAckAdapter()
+    channel = make_channel(adapter)
+    payload = {"body": "payload", "properties": {"delivery_tag": "tag"}}
+    channel._get = Mock(return_value=payload)
+    channel._delivery_refs["tag"] = "ref"
+    channel._no_ack_queues.add("celery")
+    callback = Mock()
+    adapter.fail_ack = True
+
+    with pytest.raises(SettlementFailed, match="ack failed"):
+        channel._get_and_deliver("celery", callback)
+
+    callback.assert_not_called()
+    assert channel._delivery_refs["tag"] == "ref"
+
+
 def test_basic_recover_is_not_supported_and_timeout_accepts_none():
     channel = make_channel()
     channel.receive_timeout = None
@@ -223,6 +264,21 @@ def test_transport_factories_defaults_and_connection_settings():
     assert transport._connection_settings()["port"] == 55555
 
 
+def test_size_and_purge_fallbacks_work_when_management_adapter_is_absent():
+    adapter = InMemorySolaceAdapter()
+    channel = make_channel(
+        adapter,
+        size_strategy="semp_then_browser",
+        purge_strategy="semp_then_receiver",
+    )
+    adapter.ensure_queue_subscription("celery", "topic")
+    adapter.messages_by_topic["topic"].extend(["one", "two"])
+
+    assert channel._size("celery") == 2
+    assert channel._purge("celery") == 2
+    assert channel._size("celery") == 0
+
+
 def test_transport_can_build_default_adapters_and_semp_management_adapter():
     connection = Connection(
         "solace://user:pass@broker.example.com/default",
@@ -258,5 +314,18 @@ def test_close_connection_flushes_and_closes_adapter_even_when_super_is_patched(
 
     channel.close.assert_called_once_with()
     assert adapter.flushed is True
+    assert adapter.closed is True
+    close.assert_called_once()
+
+
+def test_close_connection_closes_adapter_when_publish_flush_fails():
+    adapter = FailingFlushAdapter()
+    connection = Connection(transport=Transport, transport_options={"adapter": adapter})
+    transport = connection.transport
+
+    with patch("kombu_solace.transport.virtual.Transport.close_connection") as close:
+        with pytest.raises(PublishFailed, match="receipt failed"):
+            transport.close_connection(object())
+
     assert adapter.closed is True
     close.assert_called_once()
