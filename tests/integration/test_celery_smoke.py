@@ -14,7 +14,7 @@ import kombu_solace
 from kombu_solace.transport import Transport
 
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.celery_integration]
 
 
 def _celery_enabled() -> bool:

@@ -31,7 +31,9 @@ perf = [
 testpaths = ["tests"]
 addopts = "-ra"
 markers = [
-  "integration: tests that require a configured Solace broker",
+  "integration: any test that requires external services",
+  "broker_integration: tests that require a configured Solace broker",
+  "celery_integration: tests that require Celery workers with a Solace broker",
   "performance: opt-in benchmark and soak tests",
 ]
 

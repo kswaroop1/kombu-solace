@@ -171,10 +171,10 @@ Naming tests must cover:
 - management and purge fallbacks use physical Solace queue names, not Kombu
   logical queue names
 
-### Integration: Solace Broker
+### Broker Integration
 
-Integration tests should be skipped unless all required environment variables
-are present:
+Broker integration tests are marked `broker_integration` and skipped unless all
+required environment variables are present:
 
 - `SOLACE_HOST`
 - `SOLACE_VPN`
@@ -187,7 +187,7 @@ Broker-backed tests clean up queues with test prefixes through SEMP when
 `SOLACE_CLEANUP_QUEUES` is not disabled. The cleanup protects the local broker
 from accumulating durable test queues and exhausting endpoint limits.
 
-Initial integration tests:
+Broker integration tests:
 
 - connect and close
 - declare durable queue
@@ -203,7 +203,8 @@ Initial integration tests:
 
 ### Celery Smoke
 
-Celery tests come after Kombu behavior is stable, but before a release claim:
+Celery integration tests are marked `celery_integration`. They come after Kombu
+behavior is stable, but before a release claim:
 
 - producer publishes a task
 - worker consumes with solo pool
@@ -283,13 +284,15 @@ tests/performance/test_publish_consume_bench.py
 
 ## Commands
 
-Planned commands once tests exist:
+Use `tests/unit` for the normal unit/default validation. Broker, Celery, and
+performance suites are separate opt-in categories.
 
 ```powershell
-python -m pytest
 python -m pytest tests/unit
-python -m pytest tests/integration --run-solace-integration
-python -m pytest tests/performance --run-solace-performance
+$env:SOLACE_RUN_INTEGRATION='1'; python -m pytest -m broker_integration tests/integration
+$env:SOLACE_RUN_CELERY='1'; python -m pytest -m celery_integration tests/integration/test_celery_smoke.py
+$env:SOLACE_RUN_CELERY_INTERRUPT='1'; python -m pytest tests/integration/test_celery_worker_interrupt.py
+$env:SOLACE_RUN_PERFORMANCE='1'; python -m pytest -m performance tests/performance -s
 python -m coverage run -m pytest
 python -m coverage report
 ```

@@ -13,7 +13,7 @@ from celery import Celery
 import kombu_solace
 
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.celery_integration]
 
 
 def _enabled() -> bool:

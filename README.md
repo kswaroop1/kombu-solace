@@ -186,7 +186,7 @@ podman run -d --name solace `
   docker.io/solace/solace-pubsub-standard:latest
 ```
 
-Run broker-gated tests:
+Run broker integration tests:
 
 ```powershell
 $env:SOLACE_RUN_INTEGRATION='1'
@@ -199,7 +199,7 @@ $env:SOLACE_SEMP_URL='http://localhost:8080'
 $env:SOLACE_SEMP_USERNAME='admin'
 $env:SOLACE_SEMP_PASSWORD='admin'
 $env:SOLACE_SEMP_VERIFY_TLS='false'
-python -m pytest tests/integration -q
+python -m pytest -m broker_integration tests/integration -q
 ```
 
 Run opt-in performance smoke tests:
@@ -223,7 +223,7 @@ confirm mode, and client settings recorded.
 Set `SOLACE_RUN_SOAK=1` and `SOLACE_SOAK_MESSAGE_COUNT` to include the longer
 publish/consume soak test.
 
-Run the opt-in Celery solo-worker smoke:
+Run the opt-in Celery integration smoke:
 
 ```powershell
 $env:SOLACE_RUN_CELERY='1'
@@ -232,7 +232,7 @@ $env:SOLACE_PORT='55588'
 $env:SOLACE_VPN='default'
 $env:SOLACE_USERNAME='sampleUser'
 $env:SOLACE_PASSWORD='samplePassword'
-python -m pytest tests/integration/test_celery_smoke.py -q
+python -m pytest -m celery_integration tests/integration/test_celery_smoke.py -q
 ```
 
 This starts an in-process Celery worker with `pool="solo"` and uses Solace as

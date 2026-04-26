@@ -11,7 +11,7 @@ from kombu_solace.errors import SolaceConnectionError
 from kombu_solace.transport import Transport
 
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.broker_integration]
 
 
 def _integration_enabled() -> bool:
