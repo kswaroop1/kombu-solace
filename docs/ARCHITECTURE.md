@@ -83,6 +83,27 @@ unacknowledged messages on close. That is wrong for Solace persistent delivery
 because unacknowledged messages remain on the broker and can be redelivered when
 the receiver disconnects or reconnects. Republish-on-close can duplicate tasks.
 
+### Connection and Reconnect Ownership
+
+Kombu and Celery own reconnect policy, retry cadence, and recovery orchestration.
+The Solace transport must not run an independent reconnect loop or retry failed
+connect, publish, receive, ack, or settle operations internally. Each operation
+should make one broker attempt, clean up local Solace resources where required,
+and surface a mapped transport exception back to Kombu.
+
+Required behavior:
+
+- connection failures are raised as `SolaceConnectionError`
+- publish, publish receipt, receive, ack, and settlement failures are raised
+  promptly and classified through Kombu's `connection_errors` or
+  `channel_errors`
+- close paths still terminate Solace publisher, receiver, and service handles
+  even when flush or settlement operations fail
+- unacked-message recovery is broker-native through Solace persistent delivery,
+  not Kombu virtual republish
+- future Solace SDK auto-reconnect settings may be used only if they preserve
+  this contract and do not hide terminal failures from Kombu/Celery
+
 ## Adapter Boundary
 
 Solace imports must stay behind adapter classes. Kombu-facing tests should be

@@ -67,6 +67,36 @@ class FailingFlushAdapter(InMemorySolaceAdapter):
         raise PublishFailed("receipt failed")
 
 
+class CountingConnectAdapter(InMemorySolaceAdapter):
+    def __init__(self) -> None:
+        super().__init__()
+        self.connect_calls = 0
+
+    def connect(self, settings: dict) -> None:
+        self.connect_calls += 1
+        raise RuntimeError("connect failed")
+
+
+class CountingPublishAdapter(InMemorySolaceAdapter):
+    def __init__(self) -> None:
+        super().__init__()
+        self.publish_calls = 0
+
+    def publish(self, *args, **kwargs):
+        self.publish_calls += 1
+        raise RuntimeError("publish failed")
+
+
+class CountingReceiveAdapter(InMemorySolaceAdapter):
+    def __init__(self) -> None:
+        super().__init__()
+        self.receive_calls = 0
+
+    def receive(self, queue_name: str, timeout_ms: int | None = None):
+        self.receive_calls += 1
+        raise RuntimeError("receive failed")
+
+
 def make_channel(adapter=None, **transport_options):
     options = {"adapter": adapter or InMemorySolaceAdapter(), "namespace": "unit", **transport_options}
     connection = Connection(transport=Transport, transport_options=options)
@@ -300,6 +330,37 @@ def test_establish_connection_wraps_existing_connection_errors():
 
     with pytest.raises(Exception, match="connect failed"):
         connection.channel()
+
+
+def test_transport_does_not_retry_connect_internally():
+    adapter = CountingConnectAdapter()
+    connection = Connection(transport=Transport, transport_options={"adapter": adapter})
+    transport = connection.transport
+
+    with pytest.raises(Exception, match="connect failed"):
+        transport.establish_connection()
+
+    assert adapter.connect_calls == 1
+
+
+def test_transport_does_not_retry_publish_internally():
+    adapter = CountingPublishAdapter()
+    channel = make_channel(adapter)
+
+    with pytest.raises(Exception, match="publish failed"):
+        channel._put("celery", {"body": "payload", "properties": {}})
+
+    assert adapter.publish_calls == 1
+
+
+def test_transport_does_not_retry_receive_internally():
+    adapter = CountingReceiveAdapter()
+    channel = make_channel(adapter)
+
+    with pytest.raises(Exception, match="receive failed"):
+        channel._get("celery")
+
+    assert adapter.receive_calls == 1
 
 
 def test_close_connection_flushes_and_closes_adapter_even_when_super_is_patched():

@@ -144,6 +144,8 @@ Error mapping tests must cover:
 Every reliability-sensitive change should keep tests for these behaviors:
 
 - connection failure is classified as a Kombu retryable connection error
+- connect, publish, and receive failures are attempted once by the transport and
+  then surfaced to Kombu; reconnect/retry cadence belongs to Kombu/Celery
 - publish failure, publish receipt failure, and close-time receipt flush failure
   surface as connection-level failures
 - close-time failures still close the Solace adapter and Kombu connection state
