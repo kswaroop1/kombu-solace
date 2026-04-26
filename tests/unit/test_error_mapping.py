@@ -4,7 +4,13 @@ import pytest
 from kombu import Connection, Exchange, Producer, Queue
 
 from kombu_solace.adapter import InMemorySolaceAdapter
-from kombu_solace.errors import SolaceChannelError, SolaceConnectionError
+from kombu_solace.errors import (
+    QueueUnavailable,
+    SolaceChannelError,
+    SolaceConnectionError,
+    map_channel_error,
+    map_connection_error,
+)
 from kombu_solace.transport import Transport
 
 
@@ -75,3 +81,11 @@ def test_transport_exposes_mapped_errors_to_kombu_retry_layer():
 
     assert SolaceConnectionError in transport.connection_errors
     assert SolaceChannelError in transport.channel_errors
+
+
+def test_error_mapping_preserves_existing_transport_error_instances():
+    connection_error = SolaceConnectionError("already mapped")
+    channel_error = QueueUnavailable("queue")
+
+    assert map_connection_error(connection_error, "connect") is connection_error
+    assert map_channel_error(channel_error, "declare") is channel_error

@@ -63,3 +63,23 @@ def test_queue_name_template_is_validated():
 
     with pytest.raises(ValueError, match="unknown queue_name_template field"):
         SolaceTransportOptions.from_connection(connection)
+
+
+@pytest.mark.parametrize(
+    ("option", "value", "message"),
+    [
+        ("routing_mode", "native", "only routing_mode"),
+        ("publish_confirm_mode", "maybe", "publish_confirm_mode"),
+        ("publisher_back_pressure_strategy", "drop", "publisher_back_pressure_strategy"),
+        ("size_strategy", "estimate", "invalid size_strategy"),
+        ("purge_strategy", "truncate", "invalid purge_strategy"),
+        ("publisher_buffer_capacity", 0, "publisher_buffer_capacity"),
+        ("browser_timeout_ms", -1, "browser_timeout_ms"),
+        ("purge_receive_timeout_ms", -1, "purge_receive_timeout_ms"),
+    ],
+)
+def test_transport_options_reject_invalid_values(option, value, message):
+    connection = Connection(transport_options={option: value})
+
+    with pytest.raises(ValueError, match=message):
+        SolaceTransportOptions.from_connection(connection)

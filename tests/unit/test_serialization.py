@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from kombu_solace.serialization import deserialize_envelope, serialize_envelope
 
 
@@ -25,3 +27,13 @@ def test_message_envelope_accepts_bytes_payload():
 
     assert deserialize_envelope(payload)["body"] == "payload"
 
+
+def test_message_envelope_accepts_dict_payload_without_copying():
+    message = {"body": "payload", "properties": {}}
+
+    assert deserialize_envelope(message) is message
+
+
+def test_message_envelope_rejects_non_mapping_payload():
+    with pytest.raises(ValueError, match="Kombu message envelope"):
+        deserialize_envelope(serialize_envelope(["not", "a", "dict"]))

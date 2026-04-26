@@ -61,6 +61,26 @@ def test_queue_ingress_topic_can_use_corporate_topic_root():
     assert topic.startswith("corp/nonprod/orders/DEV1/_kombu/tasks/queue/")
 
 
+def test_queue_ingress_topic_encodes_unsafe_topic_root_segments():
+    topic = queue_ingress_topic(
+        "celery",
+        environment="DEV 1",
+        namespace="tasks namespace",
+        application="orders/app",
+        topic_prefix="corp root/nonprod",
+    )
+
+    assert topic.startswith("b64-Y29ycCByb290/nonprod/b64-b3JkZXJzL2FwcA/")
+    assert "/b64-REVWIDE/" in topic
+    assert "/b64-dGFza3MgbmFtZXNwYWNl/" in topic
+
+
+def test_queue_ingress_topic_supports_application_without_topic_prefix():
+    topic = queue_ingress_topic("celery", environment="DEV1", namespace="tasks", application="orders")
+
+    assert topic.startswith("orders/DEV1/_kombu/tasks/queue/")
+
+
 def test_physical_queue_name_defaults_to_logical_queue_name():
     assert physical_queue_name("celery", environment="DEV1") == "celery"
 
@@ -112,3 +132,26 @@ def test_physical_queue_name_hashes_long_logical_names_to_fit():
 
     assert name.startswith("corp.orders.DEV1.sha256-")
     assert len(name.encode("utf-8")) <= 250
+
+
+def test_physical_queue_name_custom_template_hashes_long_logical_name():
+    name = physical_queue_name(
+        "q" * 1000,
+        environment="DEV1",
+        application="orders",
+        queue_name_prefix="corp",
+        queue_name_template="{prefix}.{application}.{environment}.{queue}",
+    )
+
+    assert name.startswith("corp.orders.DEV1.sha256-")
+
+
+def test_physical_queue_name_rejects_empty_or_unfittable_names():
+    with pytest.raises(ValueError, match="physical Solace queue name"):
+        physical_queue_name("")
+
+    with pytest.raises(ValueError, match="physical Solace queue name"):
+        physical_queue_name(
+            "q" * 1000,
+            queue_name_template=("x" * 300) + ".{queue}",
+        )

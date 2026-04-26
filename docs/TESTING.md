@@ -318,6 +318,14 @@ python -m coverage xml
 python -m coverage html
 ```
 
-Current local combined coverage is 85% overall across `kombu_solace`.
+Current local unit coverage is 100% statement and branch coverage across
+`kombu_solace`:
+
+```text
+Name    Stmts   Miss Branch BrPart  Cover   Missing
+---------------------------------------------------
+TOTAL     771      0    190      0   100%
+```
+
 The generated `.coverage`, `coverage.xml`, and `htmlcov/` artifacts are local
 outputs and are not committed.
